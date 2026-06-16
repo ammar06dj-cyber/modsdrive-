@@ -41,12 +41,22 @@ export default function App() {
 
   // Parse active hash route
   const parseHashRoute = useCallback((): RouteState => {
+    // 1. Support path routing for /amdj0602 (so it works when typed directly)
+    const pathname = window.location.pathname;
+    if (pathname === '/amdj0602' || pathname.endsWith('/amdj0602')) {
+      // Warm redirect: Replace history path with root and switch to hash route
+      window.history.replaceState(null, '', window.location.origin + '/');
+      window.location.hash = '#/amdj0602';
+      return { page: 'amdj0602' };
+    }
+
     const hash = window.location.hash || '#home';
-    if (hash.startsWith('#mod/')) {
-      const parts = hash.split('/');
+    if (hash.startsWith('#mod/') || hash.startsWith('#/mod/')) {
+      const cleanHash = hash.startsWith('#/mod/') ? hash.substring(2) : hash.substring(1);
+      const parts = cleanHash.split('/');
       const id = parseInt(parts[1], 10);
       return { page: 'detail', selectedModId: isNaN(id) ? undefined : id };
-    } else if (hash === '#amdj0602') {
+    } else if (hash === '#amdj0602' || hash === '#/amdj0602') {
       return { page: 'amdj0602' };
     } else {
       return { page: 'home' };
@@ -94,11 +104,11 @@ export default function App() {
   // Navigation setter
   const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602', selectedModId?: number) => {
     if (page === 'detail' && selectedModId !== undefined) {
-      window.location.hash = `#mod/${selectedModId}`;
+      window.location.hash = `#/mod/${selectedModId}`;
     } else if (page === 'amdj0602') {
-      window.location.hash = '#amdj0602';
+      window.location.hash = '#/amdj0602';
     } else {
-      window.location.hash = '#home';
+      window.location.hash = '#/home';
     }
   }, []);
 
