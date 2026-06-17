@@ -109,6 +109,14 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Dynamic statistics
   const stats = useMemo(() => {
+    console.log('[DEBUG] HomePage: Raw mods data received from Supabase:', {
+      count: mods.length,
+      itemIds: mods.map(m => m.id),
+      categories: mods.map(m => m.category),
+      versions: mods.map(m => m.game_version),
+      rawItems: mods
+    });
+
     const counts = {
       total: mods.length,
       cars: 0,

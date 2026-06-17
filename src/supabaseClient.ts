@@ -25,10 +25,16 @@ const getCleanUrl = (url: string): string => {
   return clean;
 };
 
-// Placeholder credentials as requested.
-// The user will replace these placeholders with real values later.
-export const SUPABASE_URL = 'https://qqamwmjtbsnbjtxlpriv.supabase.co/rest/v1/';
-export const SUPABASE_KEY = 'sb_publishable_gpAiNrSnz0oeIG2iK9D1Mg_1SvxBzko';
+// Check environment variables first, falling back to original constants
+export const SUPABASE_URL = (
+  ((import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_URL) || 
+  'https://qqamwmjtbsnbjtxlpriv.supabase.co/rest/v1/'
+).trim();
+
+export const SUPABASE_KEY = (
+  ((import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_ANON_KEY) || 
+  'sb_publishable_gpAiNrSnz0oeIG2iK9D1Mg_1SvxBzko'
+).trim();
 
 const cleanSupabaseUrl = getCleanUrl(SUPABASE_URL);
 
