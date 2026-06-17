@@ -6,10 +6,31 @@
 import { createClient } from '@supabase/supabase-js';
 import { Mod } from './types';
 
+// Helper to clean the Supabase URL by removing trailing slashes and /rest/v1 suffix
+const getCleanUrl = (url: string): string => {
+  if (!url) return '';
+  let clean = url.trim();
+  // Remove any trailing slash first
+  if (clean.endsWith('/')) {
+    clean = clean.slice(0, -1);
+  }
+  // Strip off /rest/v1 if it is appended in the input
+  if (clean.endsWith('/rest/v1')) {
+    clean = clean.slice(0, -8);
+  }
+  // Remove any trailing slash after stripping
+  if (clean.endsWith('/')) {
+    clean = clean.slice(0, -1);
+  }
+  return clean;
+};
+
 // Placeholder credentials as requested.
 // The user will replace these placeholders with real values later.
 export const SUPABASE_URL = 'https://qqamwmjtbsnbjtxlpriv.supabase.co/rest/v1/';
 export const SUPABASE_KEY = 'sb_publishable_gpAiNrSnz0oeIG2iK9D1Mg_1SvxBzko';
+
+const cleanSupabaseUrl = getCleanUrl(SUPABASE_URL);
 
 // Check if credentials are placeholders
 const isPlaceholder = (url: string, key: string) => {
@@ -18,7 +39,14 @@ const isPlaceholder = (url: string, key: string) => {
 
 export const IS_DEMO_MODE = isPlaceholder(SUPABASE_URL, SUPABASE_KEY);
 
-const supabaseClient = !IS_DEMO_MODE ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+console.log('Supabase configuration:', {
+  originalUrl: SUPABASE_URL,
+  cleanUrl: cleanSupabaseUrl,
+  isDemoMode: IS_DEMO_MODE,
+  keyLength: SUPABASE_KEY ? SUPABASE_KEY.length : 0
+});
+
+const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
 
 // Premium initial seed mods for the demo mode
 const SEED_MODS: Mod[] = [
@@ -289,41 +317,50 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
     setLocalStorageMods(mods);
     return newMod;
   } else {
+    // Clean and dynamic payload creation
+    const insertPayload: any = {
+      name: mod.name,
+      description: mod.description,
+      category: mod.category,
+      image_url: mod.image_url,
+      download_url: mod.download_url,
+      downloads_count: 0,
+    };
+    
+    if (mod.game_version !== undefined) {
+      insertPayload.game_version = mod.game_version;
+    }
+    if (mod.mod_version !== undefined) {
+      insertPayload.mod_version = mod.mod_version;
+    }
+    if (mod.gallery_urls !== undefined) {
+      insertPayload.gallery_urls = mod.gallery_urls;
+    }
+
+    console.log('Supabase: executing INSERT query on table "mods" with payload:', insertPayload);
+
     try {
-      const { data, error } = await supabaseClient!
+      if (!supabaseClient) {
+        throw new Error('Supabase client is not initialized');
+      }
+
+      const { data, error } = await supabaseClient
         .from('mods')
-        .insert([
-          {
-            name: mod.name,
-            description: mod.description,
-            category: mod.category,
-            image_url: mod.image_url,
-            download_url: mod.download_url,
-            downloads_count: 0,
-            game_version: mod.game_version,
-            mod_version: mod.mod_version,
-            gallery_urls: mod.gallery_urls
-          }
-        ])
+        .insert([insertPayload])
         .select()
         .single();
+      
       if (error) {
+        console.error('Supabase: Query returned error:', error);
         throw error;
       }
+      
+      console.log('Supabase: INSERT query succeeded. Saved mod:', data);
       return data;
-    } catch (err) {
-      console.warn('Failed to insert into Supabase, writing to Local Storage instead:', err);
-      const mods = getLocalStorageMods();
-      const newId = mods.length > 0 ? Math.max(...mods.map(m => m.id)) + 1 : 1;
-      const newMod: Mod = {
-        ...mod,
-        id: newId,
-        downloads_count: 0,
-        created_at: new Date().toISOString()
-      };
-      mods.unshift(newMod);
-      setLocalStorageMods(mods);
-      return newMod;
+    } catch (err: any) {
+      console.error('Supabase: Exception occurred during insert operation:', err);
+      // Rethrow to bubble up to the UI so the user gets notified exactly why the DB rejected the request
+      throw err;
     }
   }
 };

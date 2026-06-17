@@ -120,13 +120,16 @@ export default function App() {
   // Add mod callback
   const handleAddMod = useCallback(async (newModData: Omit<Mod, 'id' | 'created_at' | 'downloads_count'>): Promise<boolean> => {
     try {
+      console.log('App [handleAddMod]: Initiating mod save with payload:', newModData);
       const savedMod = await createMod(newModData);
+      console.log('App [handleAddMod]: Mod successfully saved and returned:', savedMod);
       // Prepend to current cache state immediately for rapid reflection
       setMods(prevMods => [savedMod, ...prevMods]);
       return true;
     } catch (err) {
-      console.error(err);
-      return false;
+      console.error('App [handleAddMod]: Failed to save new mod:', err);
+      // Rethrow to let the UI display the explicit database error message to the administrator
+      throw err;
     }
   }, []);
 
