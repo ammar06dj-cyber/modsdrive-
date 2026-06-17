@@ -7,14 +7,16 @@ import React from 'react';
 import { Download, Car, Truck, Bus, ChevronRight, Calendar, HelpCircle } from 'lucide-react';
 import { Mod } from '../types';
 import { Language, translations } from '../translations';
+import { HighlightText } from './HighlightText';
 
 interface ModCardProps {
   mod: Mod;
   onSelect: (id: number) => void;
   lang?: Language;
+  searchTerm?: string;
 }
 
-export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar' }) => {
+export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', searchTerm = '' }) => {
   const t = translations[lang];
 
   // Category configuration
@@ -117,7 +119,7 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar' }) 
       <div id={`mod-card-content-${mod.id}`} className="p-4 flex-1 flex flex-col justify-between">
         <div>
           <h4 className="font-bold text-white mb-1 group-hover:text-brand-cyan transition-colors line-clamp-1">
-            {mod.name}
+            <HighlightText text={mod.name} search={searchTerm} />
           </h4>
 
           {/* Version tags */}
