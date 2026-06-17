@@ -31,6 +31,11 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeImage, setActiveImage] = useState<string>('');
 
+  // Scroll to absolute top immediately when page mounts or modId changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [modId]);
+
   const handleNextImage = () => {
     if (!mod) return;
     const allImages = [mod.image_url, ...(mod.gallery_urls || [])];
@@ -390,15 +395,6 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
             <div className="space-y-3 border-t border-b border-white/5 py-4 font-mono text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-[11px]">
-                  {lang === 'ar' ? 'خادم الاستضافة:' : lang === 'fr' ? 'Serveur d\'hébergement :' : 'Host Server:'}
-                </span>
-                <span className="text-gray-300 text-[11px] flex items-center gap-1">
-                  <Database className="w-3.5 h-3.5 text-brand-cyan" />
-                  <span>Internet Archive</span>
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500 text-[11px]">
                   {lang === 'ar' ? 'إجمالي التحميلات:' : lang === 'fr' ? 'Téléchargements :' : 'Total Downloads:'}
                 </span>
                 <span className="text-brand-cyan font-bold">
@@ -411,6 +407,16 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                 </span>
                 <span className="text-gray-300 text-[11px]">{formattedDate}</span>
               </div>
+              {mod.file_size && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 text-[11px]">
+                    {lang === 'ar' ? 'حجم المود:' : lang === 'fr' ? 'Taille du mod :' : 'Mod Size:'}
+                  </span>
+                  <span className="text-gray-300 text-[11px] font-bold text-brand-cyan">
+                    {mod.file_size}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-[11px]">
                   {lang === 'ar' ? 'الصيغة:' : lang === 'fr' ? 'Format :' : 'Format:'}

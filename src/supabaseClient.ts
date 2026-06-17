@@ -67,6 +67,7 @@ const SEED_MODS: Mod[] = [
     created_at: "2026-06-10T12:00:00Z",
     game_version: "v1.49",
     mod_version: "v2.1",
+    file_size: "42 MB",
     gallery_urls: [
       "https://images.unsplash.com/photo-1626847037657-fd3622613ce3?auto=format&fit=crop&q=80&w=600",
       "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=600",
@@ -84,6 +85,7 @@ const SEED_MODS: Mod[] = [
     created_at: "2026-06-11T14:30:00Z",
     game_version: "v1.49",
     mod_version: "v1.0",
+    file_size: "125 MB",
     gallery_urls: [
       "https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=600",
       "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?auto=format&fit=crop&q=80&w=600"
@@ -99,7 +101,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 1205,
     created_at: "2026-06-12T09:15:00Z",
     game_version: "v1.48",
-    mod_version: "v1.5"
+    mod_version: "v1.5",
+    file_size: "98 MB"
   },
   {
     id: 4,
@@ -111,7 +114,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 3108,
     created_at: "2026-06-13T18:45:00Z",
     game_version: "v1.50",
-    mod_version: "v3.0_beta"
+    mod_version: "v3.0_beta",
+    file_size: "75 MB"
   },
   {
     id: 5,
@@ -123,7 +127,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 1983,
     created_at: "2026-06-14T11:20:00Z",
     game_version: "v1.49",
-    mod_version: "v4.2"
+    mod_version: "v4.2",
+    file_size: "154 MB"
   },
   {
     id: 6,
@@ -135,7 +140,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 837,
     created_at: "2026-06-15T15:10:00Z",
     game_version: "v1.47",
-    mod_version: "v1.2"
+    mod_version: "v1.2",
+    file_size: "112 MB"
   },
   {
     id: 7,
@@ -147,7 +153,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 1420,
     created_at: "2026-06-15T18:30:00Z",
     game_version: "v1.49",
-    mod_version: "v1.1"
+    mod_version: "v1.1",
+    file_size: "89 MB"
   },
   {
     id: 8,
@@ -159,7 +166,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 2790,
     created_at: "2026-06-16T10:00:00Z",
     game_version: "v1.50",
-    mod_version: "v2.0"
+    mod_version: "v2.0",
+    file_size: "64 MB"
   },
   {
     id: 9,
@@ -171,7 +179,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 954,
     created_at: "2026-06-16T11:45:00Z",
     game_version: "v1.48",
-    mod_version: "v1.0"
+    mod_version: "v1.0",
+    file_size: "130 MB"
   },
   {
     id: 10,
@@ -183,7 +192,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 3512,
     created_at: "2026-06-16T12:00:00Z",
     game_version: "v1.49",
-    mod_version: "v1.8"
+    mod_version: "v1.8",
+    file_size: "210 MB"
   },
   {
     id: 11,
@@ -195,7 +205,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 2195,
     created_at: "2026-06-16T13:10:00Z",
     game_version: "v1.50",
-    mod_version: "v4.0"
+    mod_version: "v4.0",
+    file_size: "240 MB"
   },
   {
     id: 12,
@@ -207,7 +218,8 @@ const SEED_MODS: Mod[] = [
     downloads_count: 671,
     created_at: "2026-06-16T14:15:00Z",
     game_version: "v1.47",
-    mod_version: "v1.1"
+    mod_version: "v1.1",
+    file_size: "118 MB"
   }
 ];
 
@@ -241,10 +253,21 @@ const getLocalStorageMods = (): Mod[] => {
           mod.gallery_urls = seedMatch.gallery_urls;
           changed = true;
         }
+        if (!mod.file_size && seedMatch.file_size) {
+          mod.file_size = seedMatch.file_size;
+          changed = true;
+        }
       }
       // Guarantee a default game version if not there programmatically
       if (!mod.game_version) {
         mod.game_version = "v1.49";
+        changed = true;
+      }
+      if (!mod.file_size) {
+        const idNum = typeof mod.id === 'number' && !isNaN(mod.id) ? mod.id : (mod.id ? String(mod.id).length : 1);
+        const sizes = ["42 MB", "125 MB", "98 MB", "154 MB", "210 MB", "89 MB", "112 MB", "64 MB", "75 MB", "130 MB", "240 MB", "118 MB"];
+        const index = Math.abs(idNum - 1) % sizes.length;
+        mod.file_size = sizes[index];
         changed = true;
       }
       return mod;
@@ -341,6 +364,9 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
     }
     if (mod.gallery_urls !== undefined) {
       insertPayload.gallery_urls = mod.gallery_urls;
+    }
+    if (mod.file_size !== undefined) {
+      insertPayload.file_size = mod.file_size;
     }
 
     console.log('Supabase: executing INSERT query on table "mods" with payload:', insertPayload);

@@ -63,6 +63,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [sizeFilter, setSizeFilter] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<
     'all' | 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates'
   >('all');
@@ -256,7 +257,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         }
       }
 
-      return matchesSearch && matchesCategory && matchesVersion;
+      const matchesSize = !sizeFilter.trim() || (mod.file_size && mod.file_size.toLowerCase().includes(sizeFilter.toLowerCase().trim()));
+
+      return matchesSearch && matchesCategory && matchesVersion && matchesSize;
     });
 
     if (sortBy === 'downloads') {
@@ -268,12 +271,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
 
     return result;
-  }, [mods, searchTerm, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
+  }, [mods, searchTerm, sizeFilter, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedVersion, sortBy]);
+  }, [searchTerm, sizeFilter, selectedCategory, selectedVersion, sortBy]);
 
   const itemsPerPage = 8;
   const totalPages = Math.ceil(filteredAndSortedMods.length / itemsPerPage);
@@ -529,9 +532,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Top Search and Sort Controls Area - Moved Here Above Item Grid */}
-        <div id="top-search-sort-bar" className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-dark-card border border-white/5 rounded-xl">
+        <div id="top-search-sort-bar" className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-dark-card border border-white/5 rounded-xl">
           {/* Search Bar */}
-          <div className="md:col-span-3 relative flex items-center">
+          <div className="md:col-span-6 relative flex items-center">
             <Search className="absolute left-3 w-4 h-4 text-brand-cyan" />
             <input 
               type="text" 
@@ -550,8 +553,28 @@ export const HomePage: React.FC<HomePageProps> = ({
             )}
           </div>
 
+          {/* Size Filter Input Box */}
+          <div className="md:col-span-3 relative flex items-center">
+            <span className="absolute left-3 text-brand-cyan text-xs">💾</span>
+            <input 
+              type="text" 
+              placeholder={lang === 'ar' ? 'تصفية بالحجم... (مثال: 42 MB)' : lang === 'fr' ? 'Filtrer par taille... (ex: 42 MB)' : 'Filter by size... (e.g. 42 MB)'} 
+              value={sizeFilter}
+              onChange={(e) => setSizeFilter(e.target.value)}
+              className="w-full text-xs bg-dark-input border border-white/10 rounded py-2.5 pl-10 pr-12 text-gray-200 focus:outline-none focus:border-brand-cyan transition-colors placeholder-gray-500 font-semibold"
+            />
+            {sizeFilter && (
+              <button 
+                onClick={() => setSizeFilter('')}
+                className="absolute right-3 text-brand-cyan hover:text-rose-400 text-xs font-mono font-bold"
+              >
+                {lang === 'ar' ? 'مسح' : lang === 'fr' ? 'Effacer' : 'Clear'}
+              </button>
+            )}
+          </div>
+
           {/* Sort Controls select dropdown */}
-          <div className="relative">
+          <div className="md:col-span-3 relative">
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}

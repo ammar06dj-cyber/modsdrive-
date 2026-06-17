@@ -15,6 +15,7 @@ export interface Mod {
   game_version?: string;
   mod_version?: string;
   gallery_urls?: string[];
+  file_size?: string;
 }
 
 export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy';

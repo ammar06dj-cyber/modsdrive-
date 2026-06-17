@@ -69,6 +69,11 @@ export default function App() {
   const [route, setRoute] = useState<RouteState>({ page: 'home' });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  // Scroll to absolute top whenever the page route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route.page, route.selectedModId]);
+
   // Sync state router with hashchange event
   useEffect(() => {
     const handleHashChange = () => {

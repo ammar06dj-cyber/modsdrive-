@@ -40,6 +40,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [gameVersion, setGameVersion] = useState('v0.38');
   const [modVersion, setModVersion] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>(['']);
+  const [fileSize, setFileSize] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Pagination & Filtering state variables
@@ -161,6 +162,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setGameVersion(mod.game_version || 'v0.38');
     setModVersion(mod.mod_version || '');
     setGalleryUrls(mod.gallery_urls && mod.gallery_urls.length > 0 ? [...mod.gallery_urls] : ['']);
+    setFileSize(mod.file_size || '');
     
     // Smooth scroll to the publisher form so the user can easily see their data loaded
     const formElement = document.getElementById('admin-console-root');
@@ -212,6 +214,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       game_version: gameVersion,
       mod_version: modVersion || undefined,
       gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : undefined,
+      file_size: fileSize || undefined,
     });
 
     setIsSubmitting(true);
@@ -225,6 +228,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         game_version: gameVersion,
         mod_version: modVersion || undefined,
         gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : undefined,
+        file_size: fileSize || undefined,
       });
 
       if (success) {
@@ -236,6 +240,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         setDownloadUrl('');
         setGameVersion('v0.38');
         setModVersion('');
+        setFileSize('');
         setGalleryUrls(['']);
         triggerToast("Modification record created and saved standard in DB!", "success");
       } else {
@@ -430,6 +435,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   placeholder="e.g. v1.0, 2.4-beta, or leave empty"
                   value={modVersion}
                   onChange={(e) => setModVersion(e.target.value)}
+                  className="w-full bg-dark-input border border-white/10 text-white px-3 py-2.5 rounded outline-none focus:border-brand-cyan transition-all font-sans text-xs"
+                />
+              </div>
+
+              {/* Form Input: Mod Size */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] uppercase tracking-wider text-gray-400">
+                    {lang === 'ar' ? 'حجم المود / الملف (اختياري)' : lang === 'fr' ? 'Taille du mod (Facultatif)' : 'Mod File Size (Optional)'}
+                  </label>
+                  <span className="text-[8px] text-gray-500">Optional / اختياري</span>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder={lang === 'ar' ? 'مثال: 45 MB, 1.2 GB' : 'e.g. 45 MB, 1.2 GB'}
+                  value={fileSize}
+                  onChange={(e) => setFileSize(e.target.value)}
                   className="w-full bg-dark-input border border-white/10 text-white px-3 py-2.5 rounded outline-none focus:border-brand-cyan transition-all font-sans text-xs"
                 />
               </div>
@@ -737,6 +759,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           {mod.mod_version && (
                             <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-brand-cyan/10 text-brand-cyan">
                               Mod: {mod.mod_version}
+                            </span>
+                          )}
+                          {mod.file_size && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-amber-500/10 text-amber-500">
+                              Size: {mod.file_size}
                             </span>
                           )}
                         </div>
