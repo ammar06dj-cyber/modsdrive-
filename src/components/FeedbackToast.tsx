@@ -21,7 +21,7 @@ export const FeedbackToast: React.FC<FeedbackToastProps> = ({ message, type, onC
   }, [message, onClose]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-slide-in max-w-sm w-full font-mono">
+    <div className="fixed top-20 right-4 z-[200] animate-slide-in max-w-sm w-full font-mono">
       <div className={`p-4 rounded-xl shadow-2xl border flex items-start gap-3 backdrop-blur-md bg-dark-card border-white/5 ${
         type === 'success'
           ? 'text-brand-cyan shadow-brand-cyan/5'

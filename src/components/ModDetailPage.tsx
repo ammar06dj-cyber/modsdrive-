@@ -61,6 +61,19 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Disable/enable page scrolling when the modal is open/closed
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    // Clean-up to ensure scroll is restored if the component unmounts
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
   const modalTranslations = {
     ar: {
       title: "مغادرة الموقِع",
@@ -423,12 +436,12 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
       {/* External Link Confirmation Modal */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-start justify-center pt-20 sm:pt-28 p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
           style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}
           onClick={() => setIsModalOpen(false)}
         >
           <div 
-            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200 text-right"
+            className={`w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Glow Accent */}
