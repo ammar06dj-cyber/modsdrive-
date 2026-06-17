@@ -184,16 +184,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   autoFocus
                 />
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[10px] text-gray-400 font-mono">Current passcode: <strong className="text-brand-cyan">20062006dj</strong></span>
-                <button
-                  type="button"
-                  onClick={() => {setPassword('20062006dj');}}
-                  className="text-[10px] text-brand-cyan font-mono hover:underline uppercase font-bold"
-                >
-                  Autofill
-                </button>
-              </div>
+
             </div>
 
             <button
