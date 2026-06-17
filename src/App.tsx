@@ -97,9 +97,10 @@ export default function App() {
     }
   }, []);
 
+  // Load/reload mods when application mounts or when navigating back to the home view
   useEffect(() => {
     loadModsList();
-  }, [loadModsList]);
+  }, [loadModsList, route.page]);
 
   // Navigation setter
   const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602', selectedModId?: number) => {

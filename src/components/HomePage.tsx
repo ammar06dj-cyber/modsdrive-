@@ -33,11 +33,7 @@ const categoryItems = [
   { key: 'others', icon: HelpCircle },
 ] as const;
 
-const GAME_VERSIONS = [
-  'v0.38', 'v0.37', 'v0.36', 'v0.35', 'v0.34',
-  'v0.33', 'v0.32', 'v0.31', 'v0.30', 'v0.29',
-  'v0.28', 'v0.27', 'v0.26', 'v0.25', 'v0.24'
-];
+
 
 export const HomePage: React.FC<HomePageProps> = ({
   mods,
@@ -74,6 +70,43 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [sortBy, setSortBy] = useState<'downloads' | 'newest' | 'id'>('downloads');
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Dynamically extract unique game versions from the loaded mods
+  const dynamicGameVersions = useMemo(() => {
+    const versionsSet = new Set<string>();
+    
+    // Always include the current mods' versions
+    mods.forEach(mod => {
+      if (mod.game_version) {
+        const trimmed = mod.game_version.trim();
+        if (trimmed) {
+          versionsSet.add(trimmed);
+        }
+      }
+    });
+
+    // If empty, fall back to default version numbers to avoid empty display
+    if (versionsSet.size === 0) {
+      const defaultVersions = [
+        'v0.38', 'v0.37', 'v0.36', 'v0.35', 'v0.34',
+        'v0.33', 'v0.32', 'v0.31', 'v0.30', 'v0.29',
+        'v0.28', 'v0.27', 'v0.26', 'v0.25', 'v0.24'
+      ];
+      defaultVersions.forEach(v => versionsSet.add(v));
+    }
+
+    // Sort versions in descending order order (higher versions first)
+    return Array.from(versionsSet).sort((a, b) => {
+      const cleanA = a.replace(/^[vV]/, '');
+      const cleanB = b.replace(/^[vV]/, '');
+      const numA = parseFloat(cleanA);
+      const numB = parseFloat(cleanB);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numB - numA;
+      }
+      return b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [mods]);
+
   // Dynamic statistics
   const stats = useMemo(() => {
     const counts = {
@@ -92,8 +125,23 @@ export const HomePage: React.FC<HomePageProps> = ({
       others: 0,
     };
     mods.forEach(m => {
-      if (m.category && m.category in counts) {
-        counts[m.category as keyof typeof counts]++;
+      if (m.category) {
+        const cat = m.category.toLowerCase().trim();
+        if (cat in counts) {
+          counts[cat as keyof typeof counts]++;
+        } else {
+          // Additional fallback singular/plural mappings if needed
+          if (cat === 'car') counts.cars++;
+          else if (cat === 'truck') counts.trucks++;
+          else if (cat === 'bus') counts.buses++;
+          else if (cat === 'boat') counts.boats++;
+          else if (cat === 'excavator') counts.excavators++;
+          else if (cat === 'map') counts.maps++;
+          else if (cat === 'motorcycle' || cat === 'bike') counts.motorcycles++;
+          else if (cat === 'plane') counts.planes++;
+          else if (cat === 'tractor') counts.tractors++;
+          else counts.others++;
+        }
       } else {
         counts.others++;
       }
@@ -104,20 +152,22 @@ export const HomePage: React.FC<HomePageProps> = ({
   // Game versions statistics
   const versionStats = useMemo(() => {
     const counts: Record<string, number> = { 'all': mods.length };
-    GAME_VERSIONS.forEach(v => {
+    dynamicGameVersions.forEach(v => {
       counts[v] = 0;
     });
     
     mods.forEach(mod => {
-      GAME_VERSIONS.forEach(v => {
-        const hasExplicit = mod.game_version === v || mod.description.toLowerCase().includes(v) || mod.name.toLowerCase().includes(v);
+      dynamicGameVersions.forEach(v => {
+        const matchesDirect = mod.game_version && mod.game_version.trim().toLowerCase() === v.trim().toLowerCase();
+        const hasExplicit = matchesDirect || mod.description.toLowerCase().includes(v.toLowerCase()) || mod.name.toLowerCase().includes(v.toLowerCase());
+        
         if (hasExplicit) {
           counts[v]++;
         } else {
           // If mod doesn't have an explicit version defined, fallback to ID mapping
           if (!mod.game_version) {
-            const idx = GAME_VERSIONS.indexOf(v);
-            if (mod.id % GAME_VERSIONS.length === idx) {
+            const idx = dynamicGameVersions.indexOf(v);
+            if (dynamicGameVersions.length > 0 && mod.id % dynamicGameVersions.length === idx) {
               counts[v]++;
             }
           }
@@ -125,26 +175,31 @@ export const HomePage: React.FC<HomePageProps> = ({
       });
     });
     return counts;
-  }, [mods]);
+  }, [mods, dynamicGameVersions]);
 
   // Filter & Sort logic
   const filteredAndSortedMods = useMemo(() => {
     let result = mods.filter(mod => {
       const matchesSearch = mod.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             mod.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || mod.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || 
+                              (mod.category && mod.category.toLowerCase().trim() === selectedCategory);
       
       let matchesVersion = true;
       if (selectedVersion !== 'all') {
         if (mod.game_version) {
-          matchesVersion = (mod.game_version === selectedVersion);
+          matchesVersion = (mod.game_version.trim().toLowerCase() === selectedVersion.toLowerCase());
         } else {
-          const hasExplicit = mod.description.toLowerCase().includes(selectedVersion) || mod.name.toLowerCase().includes(selectedVersion);
+          const hasExplicit = mod.description.toLowerCase().includes(selectedVersion.toLowerCase()) || mod.name.toLowerCase().includes(selectedVersion.toLowerCase());
           if (hasExplicit) {
             matchesVersion = true;
           } else {
-            const idx = GAME_VERSIONS.indexOf(selectedVersion);
-            matchesVersion = (mod.id % GAME_VERSIONS.length === idx);
+            const idx = dynamicGameVersions.indexOf(selectedVersion);
+            if (dynamicGameVersions.length > 0) {
+              matchesVersion = (mod.id % dynamicGameVersions.length === idx);
+            } else {
+              matchesVersion = true;
+            }
           }
         }
       }
@@ -161,7 +216,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
 
     return result;
-  }, [mods, searchTerm, selectedCategory, selectedVersion, sortBy]);
+  }, [mods, searchTerm, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -272,7 +327,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <span className="text-[10px] opacity-75 bg-black/40 px-2 py-0.5 rounded-full">{versionStats.all}</span>
                 </button>
 
-                {GAME_VERSIONS.map((v) => (
+                {dynamicGameVersions.map((v) => (
                   <button
                     key={v}
                     onClick={() => {
@@ -369,7 +424,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <span className="text-[10px] opacity-70 bg-black/40 px-2 py-0.5 rounded-full">{versionStats.all}</span>
             </button>
 
-            {GAME_VERSIONS.map((version) => (
+            {dynamicGameVersions.map((version) => (
               <button
                 key={version}
                 onClick={() => setSelectedVersion(version)}
