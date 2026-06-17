@@ -17,7 +17,7 @@ export interface Mod {
   gallery_urls?: string[];
 }
 
-export type ActivePage = 'home' | 'detail' | 'amdj0602';
+export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy';
 
 export interface RouteState {
   page: ActivePage;

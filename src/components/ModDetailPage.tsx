@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Download, ShieldCheck, Database, Calendar, FileType, CheckCircle, Info } from 'lucide-react';
+import { ArrowLeft, Download, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info } from 'lucide-react';
 import { Mod } from '../types';
 import { getModById, incrementDownloadsCount } from '../supabaseClient';
 import { Language, translations } from '../translations';
@@ -59,13 +59,49 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
     loadMod();
   }, [modId]);
 
-  // Handle Download Action
-  const handleDownload = async () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const modalTranslations = {
+    ar: {
+      title: "مغادرة الموقِع",
+      message: "أنت تغادر ModsDrive الآن. هذا التحميل مستضاف على موقع خارجي (أرشيف الإنترنت - Internet Archive) وهو ليس تحت سيطرتنا أو إشرافنا المباشر. هل تريد الاستمرار والتحميل؟",
+      continueBtn: "استمرار",
+      cancelBtn: "إلغاء والرجوع"
+    },
+    en: {
+      title: "Leaving ModsDrive",
+      message: "You are leaving ModsDrive. This download is hosted on an external website (Internet Archive) which is not under our control. Do you want to continue?",
+      continueBtn: "Continue",
+      cancelBtn: "Cancel"
+    },
+    fr: {
+      title: "Quitter ModsDrive",
+      message: "Vous quittez ModsDrive. Ce téléchargement est hébergé sur un site externe (Internet Archive) qui n'est pas sous notre contrôle. Voulez-vous continuer ?",
+      continueBtn: "Continuer",
+      cancelBtn: "Annuler"
+    }
+  };
+
+  // Trigger modal
+  const handleDownloadClick = () => {
+    setIsModalOpen(true);
+  };
+
+  // Safe confirmed download trigger
+  const handleConfirmDownload = async () => {
+    setIsModalOpen(false);
     if (!mod || isDownloading) return;
     setIsDownloading(true);
     
     try {
-      triggerToast("Triggering secure download from Archive.org...", "info");
+      triggerToast(
+        lang === 'ar' 
+          ? "جاري بدء التحميل الآمن من أرشيف الإنترنت..." 
+          : lang === 'fr' 
+          ? "Lancement du téléchargement sécurisé..." 
+          : "Triggering secure download from Archive.org...", 
+        "info"
+      );
       
       // Increment counter in database
       const nextCount = await incrementDownloadsCount(mod.id);
@@ -79,10 +115,24 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
       // Open target URL safe in secondary tab
       window.open(mod.download_url, '_blank', 'noopener,noreferrer');
       
-      triggerToast("Downloaded successfully! Counter updated.", "success");
+      triggerToast(
+        lang === 'ar' 
+          ? "بدأ التحميل بنجاح! تم تحديث العداد." 
+          : lang === 'fr' 
+          ? "Téléchargement lancé avec succès ! Compteur mis à jour." 
+          : "Downloaded successfully! Counter updated.", 
+        "success"
+      );
     } catch (err) {
       console.error(err);
-      triggerToast("Error recording statistics, but starting download...", "info");
+      triggerToast(
+        lang === 'ar' 
+          ? "خطأ في تسجيل الإحصائيات، ولكن يبدأ التحميل..." 
+          : lang === 'fr' 
+          ? "Erreur d'enregistrement, mais lancement du téléchargement..." 
+          : "Error recording statistics, but starting download...", 
+        "info"
+      );
       window.open(mod.download_url, '_blank', 'noopener,noreferrer');
     } finally {
       setIsDownloading(false);
@@ -308,7 +358,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
             <div className="space-y-2">
               <button
                 id="main-download-cta"
-                onClick={handleDownload}
+                onClick={handleDownloadClick}
                 disabled={isDownloading}
                 className="w-full flex items-center justify-center gap-2 bg-brand-cyan hover:bg-[#FF7300] text-black font-black py-3 px-4 rounded shadow-[0_0_20px_rgba(21,114,138,0.3)] hover:shadow-[0_0_30px_rgba(21,114,138,0.5)] transition-all duration-300 disabled:opacity-55 text-xs uppercase tracking-tight cursor-pointer"
               >
@@ -357,6 +407,59 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
         </div>
 
       </div>
+
+      {/* External Link Confirmation Modal */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200 text-right"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Glow Accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-brand-cyan"></div>
+            
+            {/* Icon & Title */}
+            <div className={`flex items-start gap-4 ${lang === 'ar' ? 'text-right' : 'text-left'} mb-4`}>
+              <div className="p-3 bg-brand-cyan/10 rounded-full border border-brand-cyan/25 shrink-0">
+                <ShieldAlert className="w-6 h-6 text-brand-cyan" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white">
+                  {modalTranslations[lang].title}
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  archive.org
+                </p>
+              </div>
+            </div>
+
+            {/* Content Message */}
+            <p className="text-xs text-slate-300 leading-relaxed mb-6 font-sans">
+              {modalTranslations[lang].message}
+            </p>
+
+            {/* Action Buttons */}
+            <div className={`flex flex-col sm:flex-row gap-3 ${lang === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
+              <button
+                onClick={handleConfirmDownload}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-black bg-brand-cyan hover:bg-[#FF7300] hover:text-white rounded-lg transition-all duration-200 shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:shadow-[0_0_25px_rgba(255,115,0,0.3)] active:scale-95 cursor-pointer text-center"
+              >
+                {modalTranslations[lang].continueBtn}
+              </button>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all duration-200 active:scale-95 cursor-pointer text-center"
+              >
+                {modalTranslations[lang].cancelBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -66,7 +66,8 @@ export const translations = {
     gallery: "معرض الصور الفني",
     description: "الوصف الفني الكامل والمميزات",
     aboutHub: "عن المنصة",
-    hubDesc: "المنصة الحرة والشاملة لمشاركة إضافات وتعديلات ألعاب محاكاة قيادة الشاحنات والسيارات بأعلى جودة ممكنة."
+    hubDesc: "المنصة الحرة والشاملة لمشاركة إضافات وتعديلات ألعاب محاكاة قيادة الشاحنات والسيارات بأعلى جودة ممكنة.",
+    privacyPolicy: "سياسة الخصوصية"
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -128,7 +129,8 @@ export const translations = {
     gallery: "Technical Design Gallery",
     description: "Detailed Blueprint & Characteristics",
     aboutHub: "About Platform Hub",
-    hubDesc: "The premium independent open platform for sharing certified hyper-realistic mods for truck and car driving simulators."
+    hubDesc: "The premium independent open platform for sharing certified hyper-realistic mods for truck and car driving simulators.",
+    privacyPolicy: "Privacy Policy"
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -190,6 +192,7 @@ export const translations = {
     gallery: "Galerie de Maquettes Techniques",
     description: "Spécifications de Structure & Performance",
     aboutHub: "À propos du Réseau",
-    hubDesc: "Le portail ouvert de confiance dédié aux partages de modifications ultra-réalistes certifiées pour vos simulateurs de conduite préférés."
+    hubDesc: "Le portail ouvert de confiance dédié aux partages de modifications ultra-réalistes certifiées pour vos simulateurs de conduite préférés.",
+    privacyPolicy: "Politique de confidentialité"
   }
 };

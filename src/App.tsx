@@ -9,6 +9,7 @@ import { HomePage } from './components/HomePage';
 import { ModDetailPage } from './components/ModDetailPage';
 import { AdminPage } from './components/AdminPage';
 import { FeedbackToast } from './components/FeedbackToast';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { getMods, createMod, deleteMod, IS_DEMO_MODE } from './supabaseClient';
 import { Mod, RouteState } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
@@ -58,6 +59,8 @@ export default function App() {
       return { page: 'detail', selectedModId: isNaN(id) ? undefined : id };
     } else if (hash === '#amdj0602' || hash === '#/amdj0602') {
       return { page: 'amdj0602' };
+    } else if (hash === '#privacy-policy' || hash === '#/privacy-policy') {
+      return { page: 'privacy-policy' };
     } else {
       return { page: 'home' };
     }
@@ -103,11 +106,13 @@ export default function App() {
   }, [loadModsList, route.page]);
 
   // Navigation setter
-  const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602', selectedModId?: number) => {
+  const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy', selectedModId?: number) => {
     if (page === 'detail' && selectedModId !== undefined) {
       window.location.hash = `#/mod/${selectedModId}`;
     } else if (page === 'amdj0602') {
       window.location.hash = '#/amdj0602';
+    } else if (page === 'privacy-policy') {
+      window.location.hash = '#/privacy-policy';
     } else {
       window.location.hash = '#/home';
     }
@@ -206,6 +211,13 @@ export default function App() {
             lang={lang}
           />
         )}
+
+        {route.page === 'privacy-policy' && (
+          <PrivacyPolicyPage
+            onBack={() => handleNavigate('home')}
+            lang={lang}
+          />
+        )}
       </main>
 
       {/* Persistent Notification Overlay */}
@@ -228,6 +240,13 @@ export default function App() {
 
           <div className="flex items-center gap-4 text-gray-500">
             <span className="text-gray-500 font-sans">{t.subtitle}</span>
+            <span className="text-white/10 select-none">|</span>
+            <button
+              onClick={() => handleNavigate('privacy-policy')}
+              className="text-gray-500 hover:text-brand-cyan transition-colors duration-200 cursor-pointer hover:underline font-sans"
+            >
+              {(t as any).privacyPolicy}
+            </button>
           </div>
 
         </div>
