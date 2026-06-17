@@ -53,10 +53,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="border-b border-white/10 bg-dark-header backdrop-blur-md sticky top-0 z-50">
-      <div id="header-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div id="header-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         
         {/* Brand Container & Mobile Toggle */}
-        <div className="flex items-center justify-between w-full md:w-auto">
+        <div className="flex items-center justify-between w-full lg:w-auto">
           {/* Logo and Brand */}
           <motion.div 
             id="brand-logo" 
