@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { Gauge, Car, Bus, ShieldAlert, Wifi, Database, MoreVertical } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Gauge, Car, Bus, ShieldAlert, Wifi, Database, MoreVertical, Globe, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ActivePage } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
@@ -28,6 +28,28 @@ export const Header: React.FC<HeaderProps> = ({
   onLanguageChange
 }) => {
   const t = translations[lang];
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
+  const languages = [
+    { code: 'en', label: 'English', nativeLabel: 'EN', flag: '🇺🇸' },
+    { code: 'fr', label: 'Français', nativeLabel: 'FR', flag: '🇫🇷' },
+    { code: 'ar', label: 'العربية', nativeLabel: 'AR', flag: '🇩🇿' },
+  ] as const;
+
+  const currentLangObj = languages.find(l => l.code === lang) || languages[2];
 
   return (
     <header className="border-b border-white/10 bg-dark-header backdrop-blur-md sticky top-0 z-50">
@@ -119,38 +141,49 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{t.exploreFleet}</span>
           </button>
 
-          {/* Languages Selector */}
-          <div className="flex items-center gap-1 bg-[#121216] border border-white/10 rounded-lg p-0.5 shadow-inner">
+          {/* Languages Selector Dropdown */}
+          <div ref={dropdownRef} className="relative z-50">
             <button
-              onClick={() => onLanguageChange?.('en')}
-              className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer select-none ${
-                lang === 'en'
-                  ? 'bg-brand-cyan/15 border border-brand-cyan/30 text-brand-cyan font-black shadow-[0_0_8px_rgba(34,211,238,0.15)]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#121216]/95 hover:bg-[#16161D] border border-white/10 hover:border-brand-cyan/40 rounded-lg text-xs font-semibold text-slate-200 hover:text-white transition-all duration-200 cursor-pointer shadow-sm select-none active:scale-95"
             >
-              EN
+              <Globe className="w-3.5 h-3.5 text-brand-cyan" />
+              <span className="font-bold flex items-center gap-1.5">
+                <span>{currentLangObj.flag}</span>
+                <span>{currentLangObj.label}</span>
+              </span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-250 ${isLangOpen ? 'rotate-180' : ''}`} />
             </button>
-            <button
-              onClick={() => onLanguageChange?.('fr')}
-              className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer select-none ${
-                lang === 'fr'
-                  ? 'bg-brand-cyan/15 border border-brand-cyan/30 text-brand-cyan font-black shadow-[0_0_8px_rgba(34,211,238,0.15)]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-            >
-              FR
-            </button>
-            <button
-              onClick={() => onLanguageChange?.('ar')}
-              className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer select-none ${
-                lang === 'ar'
-                  ? 'bg-brand-cyan/15 border border-brand-cyan/30 text-brand-cyan font-black shadow-[0_0_8px_rgba(34,211,238,0.15)]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-              }`}
-            >
-              AR
-            </button>
+
+            {isLangOpen && (
+              <div 
+                className={`absolute ${
+                  lang === 'ar' ? 'left-0' : 'right-0'
+                } mt-2 w-36 rounded-lg bg-[#121216] border border-white/10 shadow-2xl overflow-hidden py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150`}
+              >
+                {languages.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => {
+                      onLanguageChange?.(l.code);
+                      setIsLangOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-all duration-150 cursor-pointer select-none ${
+                      lang === l.code
+                        ? 'bg-brand-cyan/15 text-brand-cyan font-extrabold shadow-inner'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                    style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">{l.flag}</span>
+                      <span>{l.label}</span>
+                    </span>
+                    <span className="text-[9px] opacity-40 font-mono font-bold uppercase">{l.nativeLabel}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
