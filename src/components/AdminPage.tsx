@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter } from 'lucide-react';
+import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter, Edit3, Eye } from 'lucide-react';
 import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
 import { HighlightText } from './HighlightText';
@@ -149,6 +149,33 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     } else {
       triggerToast("Access Denied! Incorrect security code.", "info");
     }
+  };
+
+  // Populate existing mod details into the form fields
+  const handlePopulateMod = (mod: Mod) => {
+    setModName(mod.name || '');
+    setDescription(mod.description || '');
+    setCategory((mod.category?.toLowerCase() || 'cars') as any);
+    setImageUrl(mod.image_url || '');
+    setDownloadUrl(mod.download_url || '');
+    setGameVersion(mod.game_version || 'v0.38');
+    setModVersion(mod.mod_version || '');
+    setGalleryUrls(mod.gallery_urls && mod.gallery_urls.length > 0 ? [...mod.gallery_urls] : ['']);
+    
+    // Smooth scroll to the publisher form so the user can easily see their data loaded
+    const formElement = document.getElementById('admin-console-root');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    triggerToast(
+      lang === 'ar' 
+        ? `تم تعبئة تفاصيل المود "${mod.name}" في لوحة التحكم بنجاح` 
+        : lang === 'fr' 
+        ? `Détails du mod "${mod.name}" chargés dans le panneau d'administration` 
+        : `Loaded "${mod.name}" details into the administration input panel`,
+      'success'
+    );
   };
 
   // Submit new Mod creation
@@ -671,61 +698,94 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <div id="admin-mods-registry-table" className="divide-y divide-white/5 max-h-[640px] overflow-y-auto pr-2 space-y-3 pt-1">
                 {paginatedMods.map((mod) => (
                   <div key={mod.id} className="flex gap-4 items-start py-3.5 first:pt-0">
-                    {/* Tiny visual card preview */}
-                    <img 
-                      src={mod.image_url} 
-                      alt="" 
-                      className="w-16 h-12 rounded object-cover bg-slate-950 border border-white/10 shrink-0 mt-0.5"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800';
-                      }}
-                    />
-
-                    {/* Metadata details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-gray-200 truncate pr-1" title={mod.name}>
-                          <HighlightText text={mod.name} search={searchQuery} />
-                        </span>
-                        
-                        <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase bg-black/60 border border-brand-cyan/20 text-brand-cyan">
-                          {mod.category}
-                        </span>
-                        {mod.game_version && (
-                          <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-white/10 text-gray-300">
-                            Game: {mod.game_version}
-                          </span>
-                        )}
-                        {mod.mod_version && (
-                          <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-brand-cyan/10 text-brand-cyan">
-                            Mod: {mod.mod_version}
-                          </span>
-                        )}
+                    {/* Clickable Area for Populating */}
+                    <div 
+                      onClick={() => handlePopulateMod(mod)}
+                      className="flex-1 flex gap-4 items-start cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-all duration-300 group/clickable"
+                      title={lang === 'ar' ? 'اضغط لتعبئة وتعديل بيانات المود' : 'Click to load & edit details'}
+                    >
+                      {/* Tiny visual card preview */}
+                      <div className="relative shrink-0 mt-0.5 group-hover/clickable:scale-105 transition-transform duration-300">
+                        <img 
+                          src={mod.image_url} 
+                          alt="" 
+                          className="w-16 h-12 rounded object-cover bg-slate-950 border border-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/clickable:opacity-100 flex items-center justify-center transition-all duration-300 rounded">
+                          <Edit3 className="w-4 h-4 text-brand-cyan" />
+                        </div>
                       </div>
 
-                      <div className="text-[10px] text-gray-500 font-mono mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                        <span>Downloads: <strong className="text-brand-cyan">{mod.downloads_count.toLocaleString()}</strong></span>
-                        <span>UID: <code className="text-gray-400">#{mod.id}</code></span>
-                        <a 
-                          href={mod.download_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-white hover:underline flex items-center gap-0.5 shrink-0"
-                        >
-                          <span>Archive Source</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
+                      {/* Metadata details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-gray-200 group-hover/clickable:text-brand-cyan truncate pr-1 transition-colors" title={mod.name}>
+                            <HighlightText text={mod.name} search={searchQuery} />
+                          </span>
+                          
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase bg-black/60 border border-brand-cyan/20 text-brand-cyan">
+                            {mod.category}
+                          </span>
+                          {mod.game_version && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-white/10 text-gray-300">
+                              Game: {mod.game_version}
+                            </span>
+                          )}
+                          {mod.mod_version && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-mono bg-brand-cyan/10 text-brand-cyan">
+                              Mod: {mod.mod_version}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-[10px] text-gray-500 font-mono mt-1.5 flex flex-wrap gap-x-4 gap-y-1 items-center" onClick={(e) => e.stopPropagation()}>
+                          <span>Downloads: <strong className="text-brand-cyan">{mod.downloads_count.toLocaleString()}</strong></span>
+                          <span>UID: <code className="text-gray-400">#{mod.id}</code></span>
+                          <a 
+                            href={mod.download_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-white hover:underline flex items-center gap-0.5 shrink-0"
+                          >
+                            <span>Archive Source</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Delete action trigger */}
-                    <button
-                      onClick={() => handleDelete(mod.id, mod.name)}
-                      className="bg-black/40 hover:bg-red-950/40 p-2 border border-white/5 hover:border-red-500/30 text-gray-500 hover:text-red-400 rounded transition-colors"
-                      title="Permanently remove mod"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Controls (Preview, Edit, or Delete) */}
+                    <div className="flex items-center gap-1.5 mt-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.hash = `#/mod/${mod.id}`;
+                        }}
+                        className="bg-black/40 hover:bg-emerald-500/20 p-2 border border-white/5 hover:border-emerald-500/40 text-emerald-400 rounded transition-all duration-300 cursor-pointer"
+                        title={lang === 'ar' ? 'معاينة صفحة المود كمستخدم' : 'Preview mod page as user'}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handlePopulateMod(mod)}
+                        className="bg-black/40 hover:bg-brand-cyan/20 p-2 border border-white/5 hover:border-brand-cyan/40 text-gray-400 hover:text-brand-cyan rounded transition-all duration-300 cursor-pointer"
+                        title={lang === 'ar' ? 'تعديل / تعبئة بالنموذج' : 'Load into form / Edit'}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(mod.id, mod.name)}
+                        className="bg-black/40 hover:bg-red-950/40 p-2 border border-white/5 hover:border-red-500/30 text-gray-500 hover:text-red-400 rounded transition-all duration-300 cursor-pointer"
+                        title="Permanently remove mod"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
