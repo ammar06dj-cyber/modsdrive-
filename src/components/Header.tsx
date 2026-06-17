@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
   const languages = [
     { code: 'en', label: 'English', nativeLabel: 'EN', flag: '🇺🇸' },
     { code: 'fr', label: 'Français', nativeLabel: 'FR', flag: '🇫🇷' },
-    { code: 'ar', label: 'العربية', nativeLabel: 'AR', flag: '🇩🇿' },
+    { code: 'ar', label: 'العربية', nativeLabel: 'AR', flag: '🇸🇦' },
   ] as const;
 
   const currentLangObj = languages.find(l => l.code === lang) || languages[2];
