@@ -274,18 +274,30 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
           {/* Installation guidelines informational notice */}
           <div className="bg-black/40 border border-white/5 p-5 rounded-xl flex gap-3">
             <Info className="w-4 h-4 text-brand-cyan shrink-0 mt-0.5" />
-            <div className="text-[11px] space-y-1 text-gray-400">
+            <div className="text-[11px] space-y-1.5 text-gray-400">
               <span className="font-bold text-gray-200 block uppercase tracking-tighter">
                 {lang === 'ar' ? 'كيفية تثبيت المود:' : lang === 'fr' ? 'Comment installer ce mod :' : 'How to Install this Mod:'}
               </span>
               <p>
-                {lang === 'ar' ? '1. انقر فوق الزر الأزرق لتحميل الملفات مباشرة من أرشيف الخوادم.' : lang === 'fr' ? '1. Cliquez sur le bouton bleu pour télécharger l\'archive depuis nos serveurs.' : '1. Click the blue button to download the archive directly from our server mirrors.'}
+                {lang === 'ar' 
+                  ? 'الخطوة 1: قم بتنزيل ملف المود من رابط التحميل.' 
+                  : lang === 'fr' 
+                  ? 'Étape 1 : Téléchargez le fichier du mod à partir du lien de téléchargement.' 
+                  : 'Step 1: Download the mod file from the download link.'}
               </p>
               <p>
-                {lang === 'ar' ? '2. استخرج مجلد ZIP/RAR الذي تم تنزيله إلى دليل تثبيت لعبة المحاكاة.' : lang === 'fr' ? '2. Extrayez l\'archive ZIP/RAR téléchargée vers le dossier de votre simulateur.' : '2. Extract the downloaded ZIP/RAR folder to your simulator installation directory.'}
+                {lang === 'ar' 
+                  ? 'الخطوة 2: استخرج الملف الذي تم تنزيله (سيكون ملفًا بتنسيق .zip أو .rar) باستخدام أداة مثل WinRAR أو 7-Zip.' 
+                  : lang === 'fr' 
+                  ? 'Étape 2 : Extrayez le fichier téléchargé (ce sera une archive .zip ou .rar) à l\'aide d\'un outil comme WinRAR ou 7-Zip.' 
+                  : 'Step 2: Extract the downloaded file (it will be a .zip or .rar archive) using a tool like WinRAR or 7-Zip.'}
               </p>
               <p>
-                {lang === 'ar' ? '3. قم بتنشيط المود من قائمة إعدادات اللعبة وابدأ رحلتك!' : lang === 'fr' ? '3. Activez le mod dans le menu des profils du jeu et commencez votre voyage !' : '3. Activate the mod inside your game settings and start simulated driving!'}
+                {lang === 'ar' 
+                  ? 'الخطوة 3: انسخ ملفات المود المستخرجة إلى مجلد تعديلات BeamNG.drive (mods folder).' 
+                  : lang === 'fr' 
+                  ? 'Étape 3 : Copiez les fichiers de mod extraits dans votre dossier de mods BeamNG.drive.' 
+                  : 'Step 3: Copy the extracted mod files into your BeamNG.drive mods folder.'}
               </p>
             </div>
           </div>
