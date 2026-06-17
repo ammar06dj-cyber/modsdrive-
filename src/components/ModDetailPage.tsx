@@ -4,7 +4,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Download, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, Download, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Mod } from '../types';
 import { getModById, incrementDownloadsCount } from '../supabaseClient';
 import { Language, translations } from '../translations';
@@ -29,6 +30,24 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeImage, setActiveImage] = useState<string>('');
+
+  const handleNextImage = () => {
+    if (!mod) return;
+    const allImages = [mod.image_url, ...(mod.gallery_urls || [])];
+    if (allImages.length <= 1) return;
+    const currentIndex = allImages.indexOf(activeImage);
+    const nextIndex = currentIndex === -1 || currentIndex === allImages.length - 1 ? 0 : currentIndex + 1;
+    setActiveImage(allImages[nextIndex]);
+  };
+
+  const handlePrevImage = () => {
+    if (!mod) return;
+    const allImages = [mod.image_url, ...(mod.gallery_urls || [])];
+    if (allImages.length <= 1) return;
+    const currentIndex = allImages.indexOf(activeImage);
+    const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
+    setActiveImage(allImages[prevIndex]);
+  };
 
   // Watch for loaded mod to reset active image
   useEffect(() => {
@@ -210,7 +229,40 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
               }}
             />
             {/* Ambient vignette background on top of cover */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+
+            {/* Navigation Arrows for switching between photos */}
+            {mod.gallery_urls && mod.gallery_urls.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrevImage();
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm"
+                  title={lang === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNextImage();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm"
+                  title={lang === 'ar' ? 'الصورة التالية' : 'Next Image'}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                
+                {/* Numeric Indicator */}
+                <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded bg-black/75 border border-white/10 text-slate-300 font-mono text-[10px] uppercase tracking-wider select-none pointer-events-none">
+                  {[mod.image_url, ...mod.gallery_urls].indexOf(activeImage) + 1} / {[mod.image_url, ...mod.gallery_urls].length}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Sub-images Gallery Row */}
@@ -434,14 +486,14 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
       </div>
 
       {/* External Link Confirmation Modal */}
-      {isModalOpen && (
+      {isModalOpen && createPortal(
         <div 
-          className="fixed inset-0 z-[100] flex items-start justify-center pt-20 sm:pt-28 p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-overlay-fade-in"
           style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}
           onClick={() => setIsModalOpen(false)}
         >
           <div 
-            className={`w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`}
+            className={`w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-y-auto max-h-[90vh] sm:max-h-[calc(100vh-2rem)] animate-responsive-modal ${lang === 'ar' ? 'text-right' : 'text-left'}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Glow Accent */}
@@ -483,7 +535,8 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

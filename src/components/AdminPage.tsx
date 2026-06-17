@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter } from 'lucide-react';
 import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
 
@@ -40,18 +40,61 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [modVersion, setModVersion] = useState('');
   const [galleryUrls, setGalleryUrls] = useState<string[]>(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Pagination & Filtering state variables
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterVersion, setFilterVersion] = useState<string>('all');
 
   const t = translations[lang];
 
+  // Dynamic distinct versions for the filter dropdown
+  const uniqueVersions = useMemo(() => {
+    const versions = mods
+      .map(m => m.game_version)
+      .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+    return Array.from(new Set(versions)).sort().reverse();
+  }, [mods]);
+
+  // List of formatted categories for filtering
+  const categoriesList = [
+    { key: 'all', label: t.categoryAll },
+    { key: 'cars', label: t.categoryCars },
+    { key: 'trucks', label: t.categoryTrucks },
+    { key: 'buses', label: t.categoryBuses },
+    { key: 'boats', label: t.categoryBoats },
+    { key: 'excavators', label: t.categoryExcavators },
+    { key: 'maps', label: t.categoryMaps },
+    { key: 'motorcycles', label: t.categoryMotorcycles },
+    { key: 'planes', label: t.categoryPlanes },
+    { key: 'tractors', label: t.categoryTractors },
+    { key: 'others', label: t.categoryOthers },
+  ];
+
+  // Search & dynamic filtering logic
+  const filteredMods = useMemo(() => {
+    return mods.filter(mod => {
+      const term = searchQuery.toLowerCase().trim();
+      const matchesSearch = term === '' || 
+        mod.name.toLowerCase().includes(term) ||
+        (mod.description && mod.description.toLowerCase().includes(term));
+      
+      const matchesCategory = filterCategory === 'all' || mod.category === filterCategory;
+      const matchesVersion = filterVersion === 'all' || mod.game_version === filterVersion;
+
+      return matchesSearch && matchesCategory && matchesVersion;
+    });
+  }, [mods, searchQuery, filterCategory, filterVersion]);
+
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(mods.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredMods.length / itemsPerPage);
   const activePage = Math.min(currentPage, Math.max(totalPages, 1));
 
   const paginatedMods = useMemo(() => {
     const startIndex = (activePage - 1) * itemsPerPage;
-    return mods.slice(startIndex, startIndex + itemsPerPage);
-  }, [mods, activePage]);
+    return filteredMods.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredMods, activePage]);
 
   const HARDCODED_PASSWORD = '20062006dj'; // Simple requested lock
 
@@ -471,9 +514,114 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-white/5">
               <div className="flex items-center gap-2">
                 <Files className="w-4 h-4 text-brand-cyan" />
-                <h3 className="text-base font-bold text-white tracking-tight uppercase">Registry Database ({mods.length})</h3>
+                <h3 className="text-base font-bold text-white tracking-tight uppercase">
+                  {lang === 'ar' ? 'نموذج قاعدة بيانات المودات' : lang === 'fr' ? 'Registre de Modifications' : 'Registry Database'} ({filteredMods.length === mods.length ? mods.length : `${filteredMods.length}/${mods.length}`})
+                </h3>
               </div>
               <span className="text-[10px] text-gray-500 font-mono uppercase">Control panel</span>
+            </div>
+
+            {/* Search and Filters Section */}
+            <div className="bg-black/35 border border-white/5 rounded-xl p-4 space-y-3 font-mono text-xs">
+              <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                <Filter className="w-3.5 h-3.5 text-brand-cyan" />
+                <span>{lang === 'ar' ? 'خيارات البحث والتصفية للناشر' : lang === 'fr' ? 'Filtrage & Triage' : 'Manager Search & Filters'}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+                {/* Text query filter */}
+                <div className="md:col-span-6 relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center shrink-0 pointer-events-none text-gray-400">
+                    <Search className="w-3.5 h-3.5" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder={t.searchPlaceholder}
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full text-xs bg-dark-input border border-white/10 text-white pl-9 pr-8 py-2 rounded-lg outline-none focus:border-brand-cyan transition-all font-sans"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setCurrentPage(1);
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white font-mono text-sm leading-none p-1 shrink-0 rounded hover:bg-white/5"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Categories selector dropdown */}
+                <div className="md:col-span-3">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => {
+                      setFilterCategory(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full text-xs bg-dark-input border border-white/10 text-gray-300 px-2 py-2 rounded-lg outline-none focus:border-brand-cyan transition-all cursor-pointer font-sans"
+                  >
+                    {categoriesList.map(cat => (
+                      <option key={cat.key} value={cat.key}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Releases / Game Version selector dropdown */}
+                <div className="md:col-span-3">
+                  <select
+                    value={filterVersion}
+                    onChange={(e) => {
+                      setFilterVersion(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full text-xs bg-dark-input border border-white/10 text-gray-300 px-2 py-2 rounded-lg outline-none focus:border-brand-cyan transition-all cursor-pointer font-sans"
+                  >
+                    <option value="all">
+                      {lang === 'ar' ? 'كل إصدارات اللعبة' : lang === 'fr' ? 'Toutes les versions' : 'All Game Releases'}
+                    </option>
+                    {uniqueVersions.map(ver => (
+                      <option key={ver} value={ver}>
+                        {ver}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Reset state helper button */}
+              {(searchQuery || filterCategory !== 'all' || filterVersion !== 'all') && (
+                <div className="flex justify-between items-center pt-2.5 border-t border-white/5 text-[10px] text-gray-500">
+                  <span>
+                    {lang === 'ar' 
+                      ? `تم العثور على ${filteredMods.length} مود` 
+                      : lang === 'fr' 
+                      ? `${filteredMods.length} mod(s) filtré(s)` 
+                      : `${filteredMods.length} mod(s) matched`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilterCategory('all');
+                      setFilterVersion('all');
+                      setCurrentPage(1);
+                    }}
+                    className="text-brand-cyan hover:underline hover:text-[#FF7300] font-bold uppercase cursor-pointer"
+                  >
+                    {t.resetFilters}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mod listings viewport */}
@@ -552,7 +700,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   {t.pageFormat
                     .replace('{current}', String(activePage))
                     .replace('{total}', String(totalPages))
-                    .replace('{count}', String(mods.length))
+                    .replace('{count}', String(filteredMods.length))
                   }
                 </span>
                 
