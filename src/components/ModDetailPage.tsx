@@ -101,19 +101,19 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const modalTranslations = {
     ar: {
       title: "مغادرة الموقِع",
-      message: "أنت تغادر ModsDrive الآن. هذا التحميل مستضاف على موقع خارجي (أرشيف الإنترنت - Internet Archive) وهو ليس تحت سيطرتنا أو إشرافنا المباشر. هل تريد الاستمرار والتحميل؟",
+      message: "أنت تغادر ModsDrive الآن وسيتم توجيهك إلى ModsFire.com، وهو موقع خارجي لاستضافة المودات ليس تحت سيطرتنا. هل تريد الاستمرار والتحميل؟",
       continueBtn: "استمرار",
       cancelBtn: "إلغاء والرجوع"
     },
     en: {
       title: "Leaving ModsDrive",
-      message: "You are leaving ModsDrive. This download is hosted on an external website (Internet Archive) which is not under our control. Do you want to continue?",
+      message: "You are about to leave ModsDrive and will be redirected to ModsFire.com, an external mod hosting website not under our control. Do you want to continue?",
       continueBtn: "Continue",
       cancelBtn: "Cancel"
     },
     fr: {
       title: "Quitter ModsDrive",
-      message: "Vous quittez ModsDrive. Ce téléchargement est hébergé sur un site externe (Internet Archive) qui n'est pas sous notre contrôle. Voulez-vous continuer ?",
+      message: "Vous êtes sur le point de quitter ModsDrive et vous serez redirigé vers ModsFire.com, un site externe d'hébergement de mods qui n'est pas sous notre contrôle. Voulez-vous continuer ?",
       continueBtn: "Continuer",
       cancelBtn: "Annuler"
     }
@@ -133,10 +133,10 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
     try {
       triggerToast(
         lang === 'ar' 
-          ? "جاري بدء التحميل الآمن من أرشيف الإنترنت..." 
+          ? "جاري بدء التحميل الآمن من ModsFire.com..." 
           : lang === 'fr' 
           ? "Lancement du téléchargement sécurisé..." 
-          : "Triggering secure download from Archive.org...", 
+          : "Triggering secure download from ModsFire.com...", 
         "info"
       );
       
@@ -407,16 +407,6 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                 </span>
                 <span className="text-gray-300 text-[11px]">{formattedDate}</span>
               </div>
-              {mod.file_size && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-[11px]">
-                    {lang === 'ar' ? 'حجم المود:' : lang === 'fr' ? 'Taille du mod :' : 'Mod Size:'}
-                  </span>
-                  <span className="text-gray-300 text-[11px] font-bold text-brand-cyan">
-                    {mod.file_size}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 text-[11px]">
                   {lang === 'ar' ? 'الصيغة:' : lang === 'fr' ? 'Format :' : 'Format:'}
@@ -450,7 +440,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
               </button>
               
               <p className="text-[9px] text-center text-gray-500 font-mono">
-                Direct package hotlink hosted on Archive.org
+                Direct package hotlink hosted on ModsFire.com
               </p>
             </div>
           </div>
@@ -515,7 +505,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                   {modalTranslations[lang].title}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  archive.org
+                  modsfire.com
                 </p>
               </div>
             </div>

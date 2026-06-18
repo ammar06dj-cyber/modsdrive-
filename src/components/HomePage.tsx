@@ -63,7 +63,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [sizeFilter, setSizeFilter] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<
     'all' | 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates'
   >('all');
@@ -257,9 +256,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         }
       }
 
-      const matchesSize = !sizeFilter.trim() || (mod.file_size && mod.file_size.toLowerCase().includes(sizeFilter.toLowerCase().trim()));
-
-      return matchesSearch && matchesCategory && matchesVersion && matchesSize;
+      return matchesSearch && matchesCategory && matchesVersion;
     });
 
     if (sortBy === 'downloads') {
@@ -271,12 +268,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
 
     return result;
-  }, [mods, searchTerm, sizeFilter, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
+  }, [mods, searchTerm, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sizeFilter, selectedCategory, selectedVersion, sortBy]);
+  }, [searchTerm, selectedCategory, selectedVersion, sortBy]);
 
   const itemsPerPage = 8;
   const totalPages = Math.ceil(filteredAndSortedMods.length / itemsPerPage);
@@ -287,7 +284,21 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, [filteredAndSortedMods, currentPage]);
 
   return (
-    <div id="homepage-root" className="animate-fade-in flex flex-col lg:flex-row gap-8 pb-12">
+    <div className="flex flex-col gap-4">
+      {/* Welcome Section */}
+      <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-2.5 font-sans animate-fade-in">
+        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+          <span className="text-brand-cyan">Mods</span>Drive
+        </h1>
+        <h2 className="text-sm sm:text-base font-semibold text-gray-300 tracking-wide">
+          Your Ultimate BeamNG.drive Mod Hub
+        </h2>
+        <p className="text-xs sm:text-sm text-gray-500 max-w-xl leading-relaxed text-center">
+          Browse and download the best mods for BeamNG.drive and other vehicle simulators. Free, fast, and always updated.
+        </p>
+      </div>
+
+      <div id="homepage-root" className="animate-fade-in flex flex-col lg:flex-row gap-8 pb-12">
       
       {/* Mobile Sidebar Filter Drawer (Opens when clicking the three dots in top corner of the featured modifications header) */}
       {isMobileFilterOpen && (
@@ -499,95 +510,79 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
-        {/* Archive Banner Static info */}
+        {/* ModsFire Banner Static info */}
         <div className="p-5 rounded-xl bg-gradient-to-br from-dark-input to-slate-950 border border-white/5 text-[11px] text-gray-500 leading-relaxed font-sans">
-          All modification packages are hosted securely on the <span className="text-gray-300 underline underline-offset-4 decoration-gray-700">Internet Archive</span> mirroring servers for maximum lifetime longevity and uncapped hotlink speeds.
+          All modification packages are hosted securely on <span className="text-gray-300 underline underline-offset-4 decoration-gray-700">ModsFire (modsfire.com)</span> mirroring servers for maximum lifetime longevity and uncapped hotlink speeds.
         </div>
       </aside>
 
       {/* Main Grid Content Area */}
       <section className="flex-1 bg-dark-section border border-white/5 rounded-xl p-6 lg:p-8 overflow-hidden flex flex-col gap-6">
-        
-        {/* Banner header row of core simulation modifications */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 pb-3 border-b border-white/5">
-          <div className="flex justify-between items-center w-full sm:w-auto">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold tracking-tight text-white">{t.featuredMods}</h2>
-              <p className="text-xs text-gray-500">{t.featuredDesc}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onRefresh}
-              disabled={isLoading}
-              className="flex items-center gap-1 text-[10px] font-mono uppercase text-gray-500 hover:text-brand-cyan transition-colors disabled:opacity-40"
-            >
-              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>{isLoading ? 'Syncing...' : 'Sync DB'}</span>
-            </button>
-            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] text-gray-400 uppercase font-bold tracking-widest shrink-0">
-              {filteredAndSortedMods.length} {lang === 'ar' ? 'من' : lang === 'fr' ? 'sur' : 'of'} {stats.total} {lang === 'ar' ? 'نشط' : 'Active'}
+
+        {/* Top Search and Sort Controls Area - Rearranged for beautiful vertical hierarchy */}
+        <div id="top-search-sort-bar" className="flex flex-col gap-4 p-4 sm:p-5 bg-dark-card border border-white/5 rounded-xl">
+          {/* ROW 1 - Stats bar (separate line) */}
+          <div className="flex flex-row justify-between items-center text-xs text-gray-500 font-sans border-b border-white/5 pb-2 md:pb-2.5">
+            <span className="font-semibold text-gray-400 bg-white/[0.02] px-2.5 py-1 rounded-md border border-white/5">
+              {lang === 'ar' ? `إجمالي المودات: ${stats.total}` : lang === 'fr' ? `Total : ${stats.total} mods` : `Total Mods: ${stats.total}`}
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-600 font-mono">
+              {lang === 'ar' ? 'سحابي نشط' : 'Cloud Sync Active'}
             </span>
           </div>
-        </div>
 
-        {/* Top Search and Sort Controls Area - Moved Here Above Item Grid */}
-        <div id="top-search-sort-bar" className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-dark-card border border-white/5 rounded-xl">
-          {/* Search Bar */}
-          <div className="md:col-span-6 relative flex items-center">
-            <Search className="absolute left-3 w-4 h-4 text-brand-cyan" />
-            <input 
-              type="text" 
-              placeholder={t.searchPlaceholder} 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full text-xs bg-dark-input border border-white/10 rounded py-2.5 pl-10 pr-12 text-gray-200 focus:outline-none focus:border-brand-cyan transition-colors placeholder-gray-500 font-semibold"
-            />
-            {searchTerm && (
+          {/* ROW 2 - Search and filters (separate line below) */}
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+            {/* Search Input on the Left */}
+            <div className="flex-1 relative flex items-center">
+              <Search className="absolute left-3 w-4 h-4 text-brand-cyan" />
+              <input 
+                type="text" 
+                placeholder={t.searchPlaceholder} 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full text-xs bg-dark-input border border-white/10 rounded-lg py-2.5 pl-10 pr-12 text-gray-200 focus:outline-none focus:border-brand-cyan transition-colors placeholder-gray-500 font-semibold"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 text-brand-cyan hover:text-rose-400 text-xs font-mono font-bold"
+                >
+                  {lang === 'ar' ? 'مسح' : lang === 'fr' ? 'Effacer' : 'Clear'}
+                </button>
+              )}
+            </div>
+
+            {/* Controls on the Right: Sort Select & Refresh (Sync) Button */}
+            <div className="flex flex-row gap-3 items-center shrink-0 w-full md:w-auto">
+              {/* Sort selector */}
+              <div className="relative flex-1 md:w-48">
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full bg-dark-input border border-white/10 rounded-lg py-2.5 pl-3 pr-8 text-xs text-brand-cyan focus:outline-none focus:border-brand-cyan transition-colors font-bold uppercase tracking-wide cursor-pointer appearance-none"
+                >
+                  <option value="downloads" className="text-white bg-dark-card">🔥 {t.sortByDownloads}</option>
+                  <option value="newest" className="text-white bg-dark-card">📅 {t.sortByNewest}</option>
+                  <option value="id" className="text-white bg-dark-card">⭐ {t.sortByPopularity}</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-brand-cyan">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Sync Button */}
               <button 
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 text-brand-cyan hover:text-rose-400 text-xs font-mono font-bold"
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-mono uppercase text-gray-400 hover:text-brand-cyan transition-colors disabled:opacity-40 shrink-0"
+                title="Sync Database"
               >
-                {lang === 'ar' ? 'مسح' : lang === 'fr' ? 'Effacer' : 'Clear'}
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="font-sans font-semibold tracking-wide text-[11px]">{isLoading ? 'Syncing...' : 'Sync'}</span>
               </button>
-            )}
-          </div>
-
-          {/* Size Filter Input Box */}
-          <div className="md:col-span-3 relative flex items-center">
-            <span className="absolute left-3 text-brand-cyan text-xs">💾</span>
-            <input 
-              type="text" 
-              placeholder={lang === 'ar' ? 'تصفية بالحجم... (مثال: 42 MB)' : lang === 'fr' ? 'Filtrer par taille... (ex: 42 MB)' : 'Filter by size... (e.g. 42 MB)'} 
-              value={sizeFilter}
-              onChange={(e) => setSizeFilter(e.target.value)}
-              className="w-full text-xs bg-dark-input border border-white/10 rounded py-2.5 pl-10 pr-12 text-gray-200 focus:outline-none focus:border-brand-cyan transition-colors placeholder-gray-500 font-semibold"
-            />
-            {sizeFilter && (
-              <button 
-                onClick={() => setSizeFilter('')}
-                className="absolute right-3 text-brand-cyan hover:text-rose-400 text-xs font-mono font-bold"
-              >
-                {lang === 'ar' ? 'مسح' : lang === 'fr' ? 'Effacer' : 'Clear'}
-              </button>
-            )}
-          </div>
-
-          {/* Sort Controls select dropdown */}
-          <div className="md:col-span-3 relative">
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full bg-dark-input border border-white/10 rounded p-2.5 text-xs text-brand-cyan focus:outline-none focus:border-brand-cyan transition-colors font-bold uppercase tracking-wide cursor-pointer appearance-none animate-none"
-            >
-              <option value="downloads" className="text-white bg-dark-card">🔥 {t.sortByDownloads}</option>
-              <option value="newest" className="text-white bg-dark-card">📅 {t.sortByNewest}</option>
-              <option value="id" className="text-white bg-dark-card">⭐ {t.sortByPopularity}</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-brand-cyan">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-              </svg>
             </div>
           </div>
         </div>
@@ -708,6 +703,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       </section>
 
+    </div>
     </div>
   );
 };

@@ -30,7 +30,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack, la
           id: "section-2",
           title: "القسم الثاني – التنزيلات والروابط الخارجية:",
           icon: "link",
-          desc: "تتم استضافة ملفات Mod على منصات خارجية مثل الإنترنت أرشيف. عندما تضغط على زر التحميل، سوف تكون إعادة توجيه إلى مصدر خارجي. نحن لسنا مسؤولين عن المحتوى أو ممارسات الخصوصية لهذه المواقع الخارجية."
+          desc: "تتم استضافة ملفات Mod على منصات خارجية مثل ModsFire (modsfire.com). عندما تضغط على زر التحميل، سوف تكون إعادة توجيه إلى مصدر خارجي. نحن لسنا مسؤولين عن المحتوى أو ممارسات الخصوصية لهذه المواقع الخارجية."
         },
         {
           id: "section-3",
@@ -64,7 +64,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack, la
           id: "section-2",
           title: "Section 2 - Downloads & External Links:",
           icon: "link",
-          desc: "Mod files are hosted on external platforms like the Internet Archive. When you click the download button, you will be redirected to an external source. We are not responsible for the content or privacy practices of these external sites."
+          desc: "Mod files are hosted on external platforms like ModsFire (modsfire.com). When you click the download button, you will be redirected to an external source. We are not responsible for the content or privacy practices of these external sites."
         },
         {
           id: "section-3",
@@ -98,7 +98,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack, la
           id: "section-2",
           title: "Section 2 - Téléchargements & Liens Externes:",
           icon: "link",
-          desc: "Les fichiers de mod sont hébergés sur des plateformes externes comme Internet Archive. Lorsque vous cliquez sur le bouton de téléchargement, vous serez redirigé vers une source externe. Nous ne sommes pas responsables du contenu ou des pratiques de confidentialité de ces sites externes."
+          desc: "Les fichiers de mod sont hébergés sur des plateformes externes comme ModsFire (modsfire.com). Lorsque vous cliquez sur le bouton de téléchargement, vous serez redirigé vers une source externe. Nous ne sommes pas responsables du contenu ou des pratiques de confidentialité de ces sites externes."
         },
         {
           id: "section-3",

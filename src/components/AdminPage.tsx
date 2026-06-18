@@ -546,19 +546,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               {/* Form Input: Download URL */}
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] uppercase tracking-wider text-gray-400">Archive.org Download URL</label>
+                  <label className="text-[10px] uppercase tracking-wider text-gray-400">ModsFire Download URL</label>
                   <span className="text-[8px] text-gray-500">Direct download link</span>
                 </div>
                 <input 
                   type="url" 
-                  placeholder="https://archive.org/download/..."
+                  placeholder="https://modsfire.com/XXXXXXXXXX"
                   value={downloadUrl}
                   onChange={(e) => setDownloadUrl(e.target.value)}
                   className="w-full bg-dark-input border border-white/10 text-white px-3 py-2.5 rounded outline-none focus:border-brand-cyan transition-all font-sans text-xs font-mono"
                   required
                 />
                 <p className="text-[9px] text-gray-500 font-sans">
-                  The actual download link from Internet Archive.
+                  The actual download link from ModsFire.
                 </p>
               </div>
 
@@ -777,7 +777,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             rel="noopener noreferrer"
                             className="text-gray-400 hover:text-white hover:underline flex items-center gap-0.5 shrink-0"
                           >
-                            <span>Archive Source</span>
+                            <span>ModsFire Source</span>
                             <ExternalLink className="w-2.5 h-2.5" />
                           </a>
                         </div>
@@ -789,7 +789,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.hash = `#/mod/${mod.id}`;
+                          window.history.pushState(null, '', `/mod/${mod.id}`);
+                          window.dispatchEvent(new Event('popstate'));
                         }}
                         className="bg-black/40 hover:bg-emerald-500/20 p-2 border border-white/5 hover:border-emerald-500/40 text-emerald-400 rounded transition-all duration-300 cursor-pointer"
                         title={lang === 'ar' ? 'معاينة صفحة المود كمستخدم' : 'Preview mod page as user'}

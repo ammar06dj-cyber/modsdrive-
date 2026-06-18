@@ -40,26 +40,38 @@ export default function App() {
   // Feedback toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
-  // Parse active hash route
-  const parseHashRoute = useCallback((): RouteState => {
-    // 1. Support path routing for /amdj0602 (so it works when typed directly)
-    const pathname = window.location.pathname;
-    if (pathname === '/amdj0602' || pathname.endsWith('/amdj0602')) {
-      // Warm redirect: Replace history path with root and switch to hash route
-      window.history.replaceState(null, '', window.location.origin + '/');
-      window.location.hash = '#/amdj0602';
-      return { page: 'amdj0602' };
+  // Parse active browser route
+  const parseBrowserRoute = useCallback((): RouteState => {
+    // 1. Support legacy hash routing by redirecting to clean routes if hash exists
+    const hash = window.location.hash || '';
+    if (hash) {
+      let cleanPath = '/';
+      if (hash.startsWith('#/mod/') || hash.startsWith('#mod/')) {
+        const cleanHash = hash.startsWith('#/mod/') ? hash.substring(2) : hash.substring(1);
+        const parts = cleanHash.split('/');
+        const id = parseInt(parts[1], 10);
+        if (!isNaN(id)) {
+          cleanPath = `/mod/${id}`;
+        }
+      } else if (hash === '#/amdj0602' || hash === '#amdj0602') {
+        cleanPath = '/amdj0602';
+      } else if (hash === '#/privacy-policy' || hash === '#privacy-policy') {
+        cleanPath = '/privacy-policy';
+      }
+      
+      // Replace hash URL with clean pathname URL
+      window.history.replaceState(null, '', window.location.origin + cleanPath);
     }
 
-    const hash = window.location.hash || '#home';
-    if (hash.startsWith('#mod/') || hash.startsWith('#/mod/')) {
-      const cleanHash = hash.startsWith('#/mod/') ? hash.substring(2) : hash.substring(1);
-      const parts = cleanHash.split('/');
-      const id = parseInt(parts[1], 10);
+    const pathname = window.location.pathname;
+    
+    if (pathname.startsWith('/mod/')) {
+      const parts = pathname.split('/');
+      const id = parseInt(parts[2], 10);
       return { page: 'detail', selectedModId: isNaN(id) ? undefined : id };
-    } else if (hash === '#amdj0602' || hash === '#/amdj0602') {
+    } else if (pathname === '/amdj0602' || pathname.endsWith('/amdj0602')) {
       return { page: 'amdj0602' };
-    } else if (hash === '#privacy-policy' || hash === '#/privacy-policy') {
+    } else if (pathname === '/privacy-policy' || pathname.endsWith('/privacy-policy')) {
       return { page: 'privacy-policy' };
     } else {
       return { page: 'home' };
@@ -74,20 +86,20 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [route.page, route.selectedModId]);
 
-  // Sync state router with hashchange event
+  // Sync state router with popstate event
   useEffect(() => {
-    const handleHashChange = () => {
-      setRoute(parseHashRoute());
+    const handlePopState = () => {
+      setRoute(parseBrowserRoute());
     };
 
     // Parse once on mount
-    setRoute(parseHashRoute());
+    setRoute(parseBrowserRoute());
 
-    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
     return () => {
-      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handlePopState);
     };
-  }, [parseHashRoute]);
+  }, [parseBrowserRoute]);
 
   // Load mods list
   const loadModsList = useCallback(async () => {
@@ -112,15 +124,17 @@ export default function App() {
 
   // Navigation setter
   const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy', selectedModId?: number) => {
+    let path = '/';
     if (page === 'detail' && selectedModId !== undefined) {
-      window.location.hash = `#/mod/${selectedModId}`;
+      path = `/mod/${selectedModId}`;
     } else if (page === 'amdj0602') {
-      window.location.hash = '#/amdj0602';
+      path = '/amdj0602';
     } else if (page === 'privacy-policy') {
-      window.location.hash = '#/privacy-policy';
-    } else {
-      window.location.hash = '#/home';
+      path = '/privacy-policy';
     }
+
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new Event('popstate'));
   }, []);
 
   // Show Toast messaging helper

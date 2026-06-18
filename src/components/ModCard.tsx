@@ -108,18 +108,10 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', se
           </div>
         )}
 
-        {/* Floating Download & Size Statistics */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
-          {mod.file_size && (
-            <div className="bg-black/90 text-amber-400 px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono flex items-center gap-1 shadow-md border border-amber-500/20">
-              <span className="text-[10px]">💾</span>
-              <span>{mod.file_size}</span>
-            </div>
-          )}
-          <div className="bg-black/80 text-gray-400 px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono flex items-center gap-1 shadow-md">
-            <Download className="w-3 h-3 text-brand-cyan" />
-            <span>{mod.downloads_count.toLocaleString()}</span>
-          </div>
+        {/* Floating Download Statistic */}
+        <div className="absolute bottom-3 right-3 bg-black/80 text-gray-400 px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono flex items-center gap-1 shadow-md">
+          <Download className="w-3 h-3 text-brand-cyan" />
+          <span>{mod.downloads_count.toLocaleString()}</span>
         </div>
       </div>
 
@@ -130,8 +122,8 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', se
             <HighlightText text={mod.name} search={searchTerm} />
           </h4>
 
-          {/* Version & Size tags */}
-          {(mod.game_version || mod.mod_version || mod.file_size) && (
+          {/* Version tags */}
+          {(mod.game_version || mod.mod_version) && (
             <div className="flex flex-wrap gap-1.5 mb-2">
               {mod.game_version && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-white/10 text-gray-300 border border-white/5">
@@ -141,11 +133,6 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', se
               {mod.mod_version && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/10">
                   📦 {mod.mod_version}
-                </span>
-              )}
-              {mod.file_size && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  💾 {mod.file_size}
                 </span>
               )}
             </div>
