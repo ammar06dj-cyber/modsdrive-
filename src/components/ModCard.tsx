@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Download, Car, Truck, Bus, ChevronRight, Calendar, HelpCircle } from 'lucide-react';
+import { Download, Car, Truck, Bus, ChevronRight, Calendar, HelpCircle, Container } from 'lucide-react';
 import { Mod } from '../types';
 import { Language, translations } from '../translations';
 import { HighlightText } from './HighlightText';
@@ -44,6 +44,15 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', se
         return {
           label: t.categoryBuses,
           icon: <Bus className="w-3 h-3" />,
+          bgColor: 'bg-black/80',
+          borderColor: 'border-white/10',
+          textColor: 'text-brand-cyan',
+          glow: 'hover:shadow-[0_0_15px_rgba(255,92,0,0.18)] hover:border-brand-cyan/20'
+        };
+      case 'trailers':
+        return {
+          label: t.categoryTrailers,
+          icon: <Container className="w-3 h-3" />,
           bgColor: 'bg-black/80',
           borderColor: 'border-white/10',
           textColor: 'text-brand-cyan',

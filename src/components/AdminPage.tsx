@@ -34,7 +34,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   // Form fields
   const [modName, setModName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates'>('cars');
+  const [category, setCategory] = useState<'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates' | 'trailers'>('cars');
   const [imageUrl, setImageUrl] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
   const [gameVersion, setGameVersion] = useState('v0.38');
@@ -65,6 +65,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { key: 'cars', label: t.categoryCars },
     { key: 'trucks', label: t.categoryTrucks },
     { key: 'buses', label: t.categoryBuses },
+    { key: 'trailers', label: t.categoryTrailers },
     { key: 'boats', label: t.categoryBoats },
     { key: 'excavators', label: t.categoryExcavators },
     { key: 'maps', label: t.categoryMaps },
@@ -139,12 +140,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     return filteredMods.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredMods, activePage]);
 
-  const HARDCODED_PASSWORD = '20062006dj'; // Simple requested lock
-
   // Handle password submission
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === HARDCODED_PASSWORD) {
+    const adminPassword = (import.meta as any).env?.VITE_ADMIN_PASSWORD;
+    if (!adminPassword) {
+      triggerToast("Admin access is not configured", "info");
+      return;
+    }
+    if (password === adminPassword) {
       setIsAuthenticated(true);
       triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
     } else {
@@ -387,6 +391,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <option value="cars">🚗 سيارات / Cars</option>
                   <option value="trucks">🚛 شاحنات / Trucks</option>
                   <option value="buses">🚌 حافلات / Buses</option>
+                  <option value="trailers">📦 مقطورات / Trailers</option>
                   <option value="boats">🛥️ قوارب / Boats</option>
                   <option value="excavators">🏗️ حفارات / Excavators</option>
                   <option value="maps">🗺️ خرائط / Maps</option>

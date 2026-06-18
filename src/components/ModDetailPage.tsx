@@ -384,7 +384,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
             {/* Categorization and Name */}
             <div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter bg-black/60 text-brand-cyan border border-brand-cyan/20 font-mono mb-2">
-                {mod.category === 'cars' ? t.categoryCars : mod.category === 'trucks' ? t.categoryTrucks : mod.category === 'buses' ? t.categoryBuses : t.categoryOthers}
+                {mod.category === 'cars' ? t.categoryCars : mod.category === 'trucks' ? t.categoryTrucks : mod.category === 'buses' ? t.categoryBuses : mod.category === 'trailers' ? t.categoryTrailers : t.categoryOthers}
               </span>
               <h2 className="text-xl font-bold text-white tracking-tight leading-tight uppercase font-sans">
                 {mod.name}

@@ -7,7 +7,7 @@ export interface Mod {
   id: number;
   name: string;
   description: string;
-  category: 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates';
+  category: 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates' | 'trailers';
   image_url: string;
   download_url: string;
   downloads_count: number;

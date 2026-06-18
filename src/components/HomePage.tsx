@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, SlidersHorizontal, RefreshCw, Car, Truck, Bus, HelpCircle, ArrowRight, Ship, Construction, Map, Bike, Newspaper, Plane, Tractor, X, MoreVertical } from 'lucide-react';
+import { Search, SlidersHorizontal, RefreshCw, Car, Truck, Bus, HelpCircle, ArrowRight, Ship, Construction, Map, Bike, Newspaper, Plane, Tractor, X, MoreVertical, Container } from 'lucide-react';
 import { Mod } from '../types';
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
@@ -24,6 +24,7 @@ const categoryItems = [
   { key: 'cars', icon: Car },
   { key: 'trucks', icon: Truck },
   { key: 'buses', icon: Bus },
+  { key: 'trailers', icon: Container },
   { key: 'boats', icon: Ship },
   { key: 'excavators', icon: Construction },
   { key: 'maps', icon: Map },
@@ -52,6 +53,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       case 'cars': return t.categoryCars;
       case 'trucks': return t.categoryTrucks;
       case 'buses': return t.categoryBuses;
+      case 'trailers': return t.categoryTrailers;
       case 'boats': return t.categoryBoats;
       case 'excavators': return t.categoryExcavators;
       case 'maps': return t.categoryMaps;
@@ -64,7 +66,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<
-    'all' | 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates'
+    'all' | 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates' | 'trailers'
   >('all');
   const [selectedVersion, setSelectedVersion] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'downloads' | 'newest' | 'id'>('downloads');
@@ -122,6 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       cars: 0,
       trucks: 0,
       buses: 0,
+      trailers: 0,
       boats: 0,
       excavators: 0,
       maps: 0,
@@ -142,6 +145,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           if (cat === 'car') counts.cars++;
           else if (cat === 'truck') counts.trucks++;
           else if (cat === 'bus') counts.buses++;
+          else if (cat === 'trailer' || cat === 'container' || cat === 'containers') counts.trailers++;
           else if (cat === 'boat') counts.boats++;
           else if (cat === 'excavator') counts.excavators++;
           else if (cat === 'map') counts.maps++;
@@ -365,7 +369,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         <span className="truncate">{getCategoryLabel(item.key)}</span>
                       </span>
                       <span className="text-[10px] opacity-75 bg-black/40 px-2 py-0.5 rounded-full">
-                        {stats[item.key]}
+                        {stats[item.key as keyof typeof stats] ?? 0}
                       </span>
                     </button>
                   );
@@ -464,7 +468,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <span className="truncate">{getCategoryLabel(item.key)}</span>
                   </span>
                   <span className="text-[10px] opacity-70 bg-black/40 px-2 py-0.5 rounded-full">
-                    {stats[item.key]}
+                    {stats[item.key as keyof typeof stats] ?? 0}
                   </span>
                 </button>
               );
