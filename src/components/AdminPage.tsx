@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter, Edit3, Eye, EyeOff } from 'lucide-react';
 import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
@@ -31,6 +32,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [modPendingDelete, setModPendingDelete] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => {
+    if (modPendingDelete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [modPendingDelete]);
   
   // Form fields
   const [modName, setModName] = useState('');
@@ -261,18 +274,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete mod "${name}"?`)) {
-      try {
-        const success = await onDeleteMod(id);
-        if (success) {
-          triggerToast("Mod deleted successfully", "success");
-        } else {
-          triggerToast("Failed to delete the mod", "info");
-        }
-      } catch (err) {
-        triggerToast("Error triggering deletion query", "info");
+  const handleDeleteConfirm = async () => {
+    if (!modPendingDelete) return;
+    const { id } = modPendingDelete;
+    setModPendingDelete(null);
+    try {
+      const success = await onDeleteMod(id);
+      if (success) {
+        triggerToast("Mod deleted successfully", "success");
+      } else {
+        triggerToast("Failed to delete the mod", "info");
       }
+    } catch (err) {
+      triggerToast("Error triggering deletion query", "info");
     }
   };
 
@@ -826,7 +840,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       </button>
 
                       <button
-                        onClick={() => handleDelete(mod.id, mod.name)}
+                        onClick={() => setModPendingDelete({ id: mod.id, name: mod.name })}
                         className="bg-black/40 hover:bg-red-950/40 p-2 border border-white/5 hover:border-red-500/30 text-gray-500 hover:text-red-400 rounded transition-all duration-300 cursor-pointer"
                         title="Permanently remove mod"
                       >
@@ -901,6 +915,60 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         </div>
 
       </div>
+
+      {modPendingDelete && createPortal(
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-overlay-fade-in"
+          onClick={() => setModPendingDelete(null)}
+        >
+          <div 
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0e0e12] p-6 shadow-2xl relative overflow-y-auto max-h-[90vh] animate-responsive-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', textAlign: lang === 'ar' ? 'right' : 'left' }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
+            
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="p-3 bg-red-500/10 rounded-full border border-red-500/25 text-red-500 mt-2">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-base font-bold text-white tracking-wide">
+                  {lang === 'ar' ? 'تأكيد الحذف' : lang === 'fr' ? 'Confirmer la suppression' : 'Confirm Deletion'}
+                </h3>
+                
+                <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                  {lang === 'ar' 
+                    ? `هل أنت متأكد من حذف المود "${modPendingDelete.name}" بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.` 
+                    : lang === 'fr' 
+                    ? `Êtes-vous sûr de vouloir supprimer définitivement "${modPendingDelete.name}" ? Cette action est irréversible.` 
+                    : `Are you sure you want to permanently delete "${modPendingDelete.name}"? This action cannot be undone.`}
+                </p>
+              </div>
+            </div>
+
+            <div className={`flex flex-col sm:flex-row gap-3 mt-6 ${lang === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
+              <button
+                type="button"
+                onClick={() => setModPendingDelete(null)}
+                className="flex-1 px-5 py-2.5 text-xs font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg transition-all duration-200 active:scale-95 cursor-pointer text-center font-sans"
+              >
+                {lang === 'ar' ? 'إلغاء' : lang === 'fr' ? 'Annuler' : 'Cancel'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-5 py-2.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200 shadow-[0_0_15px_rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 cursor-pointer text-center font-sans"
+              >
+                {lang === 'ar' ? 'حذف نهائياً' : lang === 'fr' ? 'Supprimer définitivement' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

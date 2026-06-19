@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Download, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Download, Share2, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Mod } from '../types';
 import { getModById, incrementDownloadsCount, getMods } from '../supabaseClient';
 import { ModCard } from './ModCard';
@@ -226,6 +226,37 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
     }
   };
 
+  const handleShareClick = async () => {
+    if (!mod) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: mod.name,
+          text: lang === 'ar' 
+            ? `${mod.name} على ModsDrive` 
+            : lang === 'fr' 
+            ? `${mod.name} sur ModsDrive` 
+            : `${mod.name} on ModsDrive`,
+          url: window.location.href
+        });
+      } catch (err) {
+        // Silently ignore shares cancelled or dismissed by the user
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        const toastMsg = lang === 'ar' 
+          ? "تم نسخ رابط المود!" 
+          : lang === 'fr' 
+          ? "Lien du mod copié !" 
+          : "Mod link copied!";
+        triggerToast(toastMsg, 'success');
+      } catch (err) {
+        console.error("Failed to copy link:", err);
+      }
+    }
+  };
+
   if (isPageLoading) {
     return (
       <div id="detail-skeleton" className="space-y-6 max-w-4xl mx-auto py-12 animate-pulse">
@@ -337,8 +368,8 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                       onClick={() => setActiveImage(url)}
                       className={`relative w-24 sm:w-28 aspect-video rounded-md overflow-hidden border transition-all duration-300 shrink-0 ${
                         isActive 
-                          ? 'border-brand-orange shadow-[0_0_12px_rgba(255,92,0,0.35)] scale-95' 
-                          : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
+                           ? 'border-brand-orange shadow-[0_0_12px_rgba(255,92,0,0.35)] scale-95' 
+                           : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
                       }`}
                     >
                       <img 
@@ -355,6 +386,120 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
               </div>
             </div>
           )}
+
+          {/* Download & specs HUD for mobile only */}
+          <div className="lg:hidden space-y-6">
+            
+            {/* Main Huge Download HUD Console Box for Mobile */}
+            <div className="bg-dark-card border border-white/5 rounded-xl p-6 space-y-6 shadow-xl relative overflow-hidden text-right" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', textAlign: lang === 'ar' ? 'right' : 'left' }}>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-brand-cyan opacity-80"></div>
+
+              {/* Categorization and Name */}
+              <div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-tighter bg-black/60 text-brand-cyan border border-brand-cyan/20 font-mono mb-2">
+                  {mod.category === 'cars' ? t.categoryCars : mod.category === 'trucks' ? t.categoryTrucks : mod.category === 'buses' ? t.categoryBuses : mod.category === 'trailers' ? t.categoryTrailers : t.categoryOthers}
+                </span>
+                <h2 className="text-xl font-bold text-white tracking-tight leading-tight uppercase font-sans">
+                  {mod.name}
+                </h2>
+              </div>
+
+              {/* Technical stats table */}
+              <div className="space-y-3 border-t border-b border-white/5 py-4 font-mono text-xs">
+                <div className="flex justify-between items-center text-right">
+                  <span className="text-gray-500 text-[11px]">
+                    {lang === 'ar' ? 'إجمالي التحميلات:' : lang === 'fr' ? 'Téléchargements :' : 'Total Downloads:'}
+                  </span>
+                  <span className="text-brand-cyan font-bold">
+                    {mod.downloads_count.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-right">
+                  <span className="text-gray-500 text-[11px]">
+                    {lang === 'ar' ? 'تاريخ الرفع:' : lang === 'fr' ? 'Date d\'import :' : 'Upload Date:'}
+                  </span>
+                  <span className="text-gray-300 text-[11px]">{formattedDate}</span>
+                </div>
+                <div className="flex justify-between items-center text-right">
+                  <span className="text-gray-500 text-[11px]">
+                    {lang === 'ar' ? 'الصيغة:' : lang === 'fr' ? 'Format :' : 'Format:'}
+                  </span>
+                  <span className="text-gray-300 text-[11px] flex items-center gap-1">
+                    <FileType className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Compressed ZIP</span>
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-right">
+                  <span className="text-gray-500 text-[11px]">
+                    {lang === 'ar' ? 'فحص الأمان:' : lang === 'fr' ? 'Contrôle de sécurité :' : 'Safety Check:'}
+                  </span>
+                  <span className="text-emerald-400 text-[11px] flex items-center gap-1 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{lang === 'ar' ? 'مفحص ونظيف وآمن' : lang === 'fr' ? 'Sûr & Vérifié' : 'Verified Clean'}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Huge CTA Click button */}
+              <div className="space-y-2">
+                <button
+                  id="main-download-cta-mobile"
+                  onClick={handleDownloadClick}
+                  disabled={isDownloading}
+                  className="w-full flex items-center justify-center gap-2 bg-brand-cyan hover:bg-[#FF7300] text-black font-black py-3 px-4 rounded shadow-[0_0_20px_rgba(21,114,138,0.3)] hover:shadow-[0_0_30px_rgba(21,114,138,0.5)] transition-all duration-300 disabled:opacity-55 text-xs uppercase tracking-tight cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{lang === 'ar' ? 'تحميل الملف الآن' : lang === 'fr' ? 'Télécharger l\'archive' : 'Download Archive'}</span>
+                </button>
+
+                <button
+                  id="main-share-cta-mobile"
+                  onClick={handleShareClick}
+                  className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-gray-300 hover:text-brand-cyan hover:border-brand-cyan/40 py-2.5 px-4 rounded transition-all duration-300 text-xs uppercase tracking-tight cursor-pointer font-sans"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>{lang === 'ar' ? 'مشاركة' : lang === 'fr' ? 'Partager' : 'Share'}</span>
+                </button>
+                
+                <p className="text-[9px] text-center text-gray-500 font-mono">
+                  Direct package hotlink hosted on ModsFire.com
+                </p>
+              </div>
+            </div>
+
+            {/* Quick specs match */}
+            <div className="bg-dark-card border border-white/5 rounded-xl p-5 font-mono text-xs space-y-3.5" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', textAlign: lang === 'ar' ? 'right' : 'left' }}>
+              <h4 className="text-slate-300 font-bold uppercase tracking-wider text-[10px] border-b border-white/5 pb-2 text-right">
+                {lang === 'ar' ? 'طابقت المتطلبات' : lang === 'fr' ? 'Exigences Requises' : 'Requirements Match'}
+              </h4>
+              
+              <div className="space-y-2.5 text-gray-500 text-[11px]">
+                <div className="flex justify-between text-right">
+                  <span>{lang === 'ar' ? 'إصدار اللعبة:' : lang === 'fr' ? 'Version du jeu :' : 'Game Version:'}</span>
+                  <span className="text-brand-cyan font-bold">{mod.game_version || 'v0.38'}</span>
+                </div>
+                {mod.mod_version && (
+                  <div className="flex justify-between text-right">
+                    <span>{lang === 'ar' ? 'إصدار المود:' : lang === 'fr' ? 'Version du mod :' : 'Mod Version:'}</span>
+                    <span className="text-gray-300">{mod.mod_version}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-right">
+                  <span>{lang === 'ar' ? 'دركسون القيادة:' : lang === 'fr' ? 'Contrôle à volant :' : 'Steering Control:'}</span>
+                  <span className="text-gray-300">{lang === 'ar' ? 'يدعم اهتزاز القوة FFB' : lang === 'fr' ? 'Volants FFB Prêts' : 'Force Feedback Ready'}</span>
+                </div>
+                <div className="flex justify-between text-right">
+                  <span>{lang === 'ar' ? 'اللعب الجماعي:' : lang === 'fr' ? 'Multijoueur Convoy :' : 'Multiplayer Ready:'}</span>
+                  <span className="text-brand-cyan">{lang === 'ar' ? 'متوافق وآمن' : lang === 'fr' ? 'Compatible' : 'Convoy compatible'}</span>
+                </div>
+                <div className="flex justify-between text-right">
+                  <span>{lang === 'ar' ? 'التعديل الداخلي:' : lang === 'fr' ? 'Personnalisation :' : 'Custom Tuning:'}</span>
+                  <span className="text-brand-cyan">{lang === 'ar' ? 'كامل ومتوافق' : lang === 'fr' ? 'Compatible' : 'Compatible'}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
 
           {/* Model information card */}
           <div className="bg-dark-card border border-white/5 rounded-xl p-6 space-y-4">
@@ -465,8 +610,8 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
 
         </div>
 
-        {/* Right Side: Installation & Statistics HUD (Span 4) */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Right Side: Installation & Statistics HUD (Span 4) - Hidden on mobile, visible on desktop */}
+        <div className="hidden lg:block lg:col-span-4 space-y-6">
           
           {/* Main Huge Download HUD Console Box */}
           <div className="bg-dark-card border border-white/5 rounded-xl p-6 space-y-6 shadow-xl relative overflow-hidden">
@@ -521,13 +666,22 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
             {/* Huge CTA Click button */}
             <div className="space-y-2">
               <button
-                id="main-download-cta"
+                id="main-download-cta-desktop"
                 onClick={handleDownloadClick}
                 disabled={isDownloading}
                 className="w-full flex items-center justify-center gap-2 bg-brand-cyan hover:bg-[#FF7300] text-black font-black py-3 px-4 rounded shadow-[0_0_20px_rgba(21,114,138,0.3)] hover:shadow-[0_0_30px_rgba(21,114,138,0.5)] transition-all duration-300 disabled:opacity-55 text-xs uppercase tracking-tight cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>{lang === 'ar' ? 'تحميل الملف الآن' : lang === 'fr' ? 'Télécharger l\'archive' : 'Download Archive'}</span>
+              </button>
+
+              <button
+                id="main-share-cta-desktop"
+                onClick={handleShareClick}
+                className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-gray-300 hover:text-brand-cyan hover:border-brand-cyan/40 py-2.5 px-4 rounded transition-all duration-300 text-xs uppercase tracking-tight cursor-pointer font-sans"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>{lang === 'ar' ? 'مشاركة' : lang === 'fr' ? 'Partager' : 'Share'}</span>
               </button>
               
               <p className="text-[9px] text-center text-gray-500 font-mono">

@@ -68,7 +68,9 @@ export const translations = {
     description: "الوصف الفني الكامل والمميزات",
     aboutHub: "عن المنصة",
     hubDesc: "المنصة الحرة والشاملة لمشاركة إضافات وتعديلات ألعاب محاكاة قيادة الشاحنات والسيارات بأعلى جودة ممكنة.",
-    privacyPolicy: "سياسة الخصوصية"
+    privacyPolicy: "سياسة الخصوصية",
+    heroSubtitle: "مركزك الأمثل لمودات محاكي حوادث BeamNG.drive",
+    heroDescription: "تصفح وحمّل أفضل مودات محاكي حوادث السيارات BeamNG.drive. مجاناً، بسرعة، ودائماً محدّثة."
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -132,7 +134,9 @@ export const translations = {
     description: "Detailed Blueprint & Characteristics",
     aboutHub: "About Platform Hub",
     hubDesc: "The premium independent open platform for sharing certified hyper-realistic mods for truck and car driving simulators.",
-    privacyPolicy: "Privacy Policy"
+    privacyPolicy: "Privacy Policy",
+    heroSubtitle: "Your Ultimate BeamNG.drive Mod Hub",
+    heroDescription: "Browse and download the best mods for BeamNG.drive. Free, fast, and always updated."
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -196,6 +200,8 @@ export const translations = {
     description: "Spécifications de Structure & Performance",
     aboutHub: "À propos du Réseau",
     hubDesc: "Le portail ouvert de confiance dédié aux partages de modifications ultra-réalistes certifiées pour vos simulateurs de conduite préférés.",
-    privacyPolicy: "Politique de confidentialité"
+    privacyPolicy: "Politique de confidentialité",
+    heroSubtitle: "Votre plateforme de référence pour les mods BeamNG.drive",
+    heroDescription: "Parcourez et téléchargez les meilleurs mods pour BeamNG.drive. Gratuit, rapide et toujours à jour."
   }
 };

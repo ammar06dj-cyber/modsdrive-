@@ -290,15 +290,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* Welcome Section */}
-      <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-2.5 font-sans animate-fade-in">
-        <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+      <div className="flex flex-col items-center justify-center text-center py-4 sm:py-6 lg:py-8 px-4 space-y-1 sm:space-y-2 font-sans animate-fade-in">
+        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
           <span className="text-brand-cyan">Mods</span>Drive
         </h1>
-        <h2 className="text-sm sm:text-base font-semibold text-gray-300 tracking-wide">
-          Your Ultimate BeamNG.drive Mod Hub
+        <h2 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-300 tracking-wide">
+          {t.heroSubtitle}
         </h2>
-        <p className="text-xs sm:text-sm text-gray-500 max-w-xl leading-relaxed text-center">
-          Browse and download the best mods for BeamNG.drive and other vehicle simulators. Free, fast, and always updated.
+        <p className="text-xs sm:text-sm text-gray-500 max-w-xl leading-snug sm:leading-relaxed text-center">
+          {t.heroDescription}
         </p>
       </div>
 
