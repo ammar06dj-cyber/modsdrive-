@@ -7,7 +7,8 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Download, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Mod } from '../types';
-import { getModById, incrementDownloadsCount } from '../supabaseClient';
+import { getModById, incrementDownloadsCount, getMods } from '../supabaseClient';
+import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 
 interface ModDetailPageProps {
@@ -30,6 +31,55 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeImage, setActiveImage] = useState<string>('');
+
+  // Related Mods state and load logic
+  const [relatedMods, setRelatedMods] = useState<Mod[]>([]);
+  const [areRelatedLoading, setAreRelatedLoading] = useState(false);
+
+  useEffect(() => {
+    if (isPageLoading || !mod) {
+      return;
+    }
+
+    let isMounted = true;
+    async function fetchRelated() {
+      setAreRelatedLoading(true);
+      try {
+        const data = await getMods();
+        if (!isMounted) return;
+
+        const otherMods = (data || []).filter(m => m.id !== mod?.id);
+        if (otherMods.length === 0) {
+          setRelatedMods([]);
+          return;
+        }
+
+        // Filter by same category
+        let filtered = otherMods.filter(m => m.category === mod?.category);
+        
+        // Fallback to other categories if less than 3
+        if (filtered.length < 3) {
+          const remainingNeeded = 3 - filtered.length;
+          const fallbackOptions = otherMods.filter(m => m.category !== mod?.category);
+          filtered = [...filtered, ...fallbackOptions.slice(0, remainingNeeded)];
+        }
+
+        setRelatedMods(filtered.slice(0, 3));
+      } catch (err) {
+        console.error("Failed to load related mods:", err);
+      } finally {
+        if (isMounted) {
+          setAreRelatedLoading(false);
+        }
+      }
+    }
+
+    fetchRelated();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modId, isPageLoading, mod]);
 
   // Scroll to absolute top immediately when page mounts or modId changes
   useEffect(() => {
@@ -371,6 +421,47 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Related Mods Section */}
+          {(areRelatedLoading || relatedMods.length > 0) && (
+            <div className="space-y-4 pt-4 border-t border-white/5">
+              <h3 className="text-sm font-bold text-white tracking-wide uppercase">
+                {lang === 'ar' 
+                  ? "مودات مشابهة قد تهمك" 
+                  : lang === 'fr' 
+                  ? "Mods similaires qui pourraient vous plaire" 
+                  : "Related Mods You Might Like"}
+              </h3>
+              {areRelatedLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-dark-card/50 border border-white/5 rounded-xl overflow-hidden p-4 space-y-4">
+                      <div className="h-32 bg-slate-900 rounded-lg w-full"></div>
+                      <div className="h-4 bg-slate-800 rounded w-2/3"></div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-slate-800 rounded w-full"></div>
+                        <div className="h-3 bg-slate-800 rounded w-5/6"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+                  {relatedMods.map((relatedMod) => (
+                    <ModCard
+                      key={relatedMod.id}
+                      mod={relatedMod}
+                      onSelect={(id) => {
+                        window.history.pushState(null, '', `/mod/${id}`);
+                        window.dispatchEvent(new Event('popstate'));
+                      }}
+                      lang={lang}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
 
