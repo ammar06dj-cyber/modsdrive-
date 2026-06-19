@@ -16,6 +16,8 @@ export interface Mod {
   mod_version?: string;
   gallery_urls?: string[];
   file_size?: string;
+  creator_id?: string | null;
+  status?: 'approved' | 'pending' | 'rejected';
 }
 
 export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login';

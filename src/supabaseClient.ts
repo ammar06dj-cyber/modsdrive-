@@ -288,10 +288,13 @@ const setLocalStorageMods = (mods: Mod[]) => {
 
 // Mod operations
 export const getMods = async (): Promise<Mod[]> => {
+  const isApproved = (m: Mod) => m.status === 'approved' || m.status === undefined || m.status === null;
+
   if (IS_DEMO_MODE) {
     // Add brief animation delay
     await new Promise(resolve => setTimeout(resolve, 350));
-    return getLocalStorageMods();
+    const mods = getLocalStorageMods();
+    return mods.filter(isApproved);
   } else {
     try {
       const { data, error } = await supabaseClient!
@@ -301,10 +304,12 @@ export const getMods = async (): Promise<Mod[]> => {
       if (error) {
         throw error;
       }
-      return data || [];
+      const fetchedMods = data || [];
+      return fetchedMods.filter(isApproved);
     } catch (err) {
       console.warn('Failed to fetch from Supabase, falling back to Local Storage:', err);
-      return getLocalStorageMods();
+      const mods = getLocalStorageMods();
+      return mods.filter(isApproved);
     }
   }
 };
