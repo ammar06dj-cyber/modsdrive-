@@ -86,6 +86,24 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [route.page, route.selectedModId]);
 
+  // Update browser tab title dynamically based on route and loaded mod data
+  useEffect(() => {
+    if (route.page === 'home') {
+      document.title = "ModsDrive";
+    } else if (route.page === 'detail' && route.selectedModId !== undefined) {
+      const activeMod = mods.find(m => m.id === route.selectedModId);
+      if (activeMod?.name) {
+        document.title = `${activeMod.name} - ModsDrive`;
+      } else {
+        document.title = "ModsDrive";
+      }
+    } else if (route.page === 'privacy-policy') {
+      document.title = "Privacy Policy - ModsDrive";
+    } else if (route.page === 'amdj0602') {
+      document.title = "Admin - ModsDrive";
+    }
+  }, [route, mods]);
+
   // Sync state router with popstate event
   useEffect(() => {
     const handlePopState = () => {
