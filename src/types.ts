@@ -18,7 +18,7 @@ export interface Mod {
   file_size?: string;
 }
 
-export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy';
+export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login';
 
 export interface RouteState {
   page: ActivePage;

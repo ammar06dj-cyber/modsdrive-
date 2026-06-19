@@ -52,7 +52,7 @@ console.log('Supabase configuration:', {
   keyLength: SUPABASE_KEY ? SUPABASE_KEY.length : 0
 });
 
-const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
+export const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
 
 // Premium initial seed mods for the demo mode
 const SEED_MODS: Mod[] = [

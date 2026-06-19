@@ -10,6 +10,7 @@ import { ModDetailPage } from './components/ModDetailPage';
 import { AdminPage } from './components/AdminPage';
 import { FeedbackToast } from './components/FeedbackToast';
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { DesignerAuthPage } from './components/DesignerAuthPage';
 import { getMods, createMod, deleteMod, IS_DEMO_MODE } from './supabaseClient';
 import { Mod, RouteState } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
@@ -73,6 +74,8 @@ export default function App() {
       return { page: 'amdj0602' };
     } else if (pathname === '/privacy-policy' || pathname.endsWith('/privacy-policy')) {
       return { page: 'privacy-policy' };
+    } else if (pathname === '/designer-login' || pathname.endsWith('/designer-login')) {
+      return { page: 'designer-login' };
     } else {
       return { page: 'home' };
     }
@@ -101,6 +104,8 @@ export default function App() {
       document.title = "Privacy Policy - ModsDrive";
     } else if (route.page === 'amdj0602') {
       document.title = "Admin - ModsDrive";
+    } else if (route.page === 'designer-login') {
+      document.title = "Designers - ModsDrive";
     }
   }, [route, mods]);
 
@@ -141,7 +146,7 @@ export default function App() {
   }, [loadModsList, route.page]);
 
   // Navigation setter
-  const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy', selectedModId?: number) => {
+  const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login', selectedModId?: number) => {
     let path = '/';
     if (page === 'detail' && selectedModId !== undefined) {
       path = `/mod/${selectedModId}`;
@@ -149,6 +154,8 @@ export default function App() {
       path = '/amdj0602';
     } else if (page === 'privacy-policy') {
       path = '/privacy-policy';
+    } else if (page === 'designer-login') {
+      path = '/designer-login';
     }
 
     window.history.pushState(null, '', path);
@@ -253,6 +260,13 @@ export default function App() {
           <PrivacyPolicyPage
             onBack={() => handleNavigate('home')}
             lang={lang}
+          />
+        )}
+
+        {route.page === 'designer-login' && (
+          <DesignerAuthPage
+            lang={lang}
+            triggerToast={triggerToast}
           />
         )}
       </main>
