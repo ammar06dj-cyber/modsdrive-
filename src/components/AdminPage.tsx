@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter, Edit3, Eye } from 'lucide-react';
+import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, ExternalLink, ShieldCheck, Search, Filter, Edit3, Eye, EyeOff } from 'lucide-react';
 import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
 import { HighlightText } from './HighlightText';
@@ -30,6 +30,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 }) => {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Form fields
   const [modName, setModName] = useState('');
@@ -297,13 +298,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <div className="relative">
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="Enter Passcode..." 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full text-xs bg-dark-input border border-white/10 text-white pl-10 pr-4 py-2.5 rounded outline-none focus:border-brand-cyan/80 transition-all font-mono"
+                  className="w-full text-xs bg-dark-input border border-white/10 text-white pl-10 pr-10 py-2.5 rounded outline-none focus:border-brand-cyan/80 transition-all font-mono"
                   autoFocus
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-cyan transition-colors focus:outline-none"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
 
             </div>
