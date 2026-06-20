@@ -449,6 +449,7 @@ export const deleteMod = async (id: number): Promise<boolean> => {
 
 export const incrementDownloadsCount = async (id: number): Promise<number> => {
   if (IS_DEMO_MODE) {
+    // Note: Demo mode is single-user, so race conditions don't apply here
     const mods = getLocalStorageMods();
     const index = mods.findIndex(m => m.id === id);
     if (index !== -1) {
@@ -459,32 +460,16 @@ export const incrementDownloadsCount = async (id: number): Promise<number> => {
     return 0;
   } else {
     try {
-      const { data: currentMod, error: fetchError } = await supabaseClient!
-        .from('mods')
-        .select('downloads_count')
-        .eq('id', id)
-        .single();
-      
-      if (fetchError || !currentMod) {
-        throw fetchError || new Error('Mod not found');
-      }
-
-      const nextCount = (currentMod.downloads_count || 0) + 1;
-
       const { data, error } = await supabaseClient!
-        .from('mods')
-        .update({ downloads_count: nextCount })
-        .eq('id', id)
-        .select('downloads_count')
-        .single();
-
+        .rpc('increment_downloads', { mod_id: id });
+      
       if (error) {
         throw error;
       }
-      return data?.downloads_count ?? nextCount;
+      return data || 0;
     } catch (err) {
       if (IS_DEV) {
-        console.warn('Failed to update download count in Supabase, updating Local Storage:', err);
+        console.warn('Failed to update download count in Supabase via RPC, updating Local Storage:', err);
       }
       const mods = getLocalStorageMods();
       const index = mods.findIndex(m => m.id === id);
