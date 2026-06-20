@@ -9,6 +9,7 @@ import { Lock, Plus, Trash2, Key, Database, Files, AlertTriangle, ArrowLeft, Ext
 import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
 import { HighlightText } from './HighlightText';
+import { sanitizeUrl } from '../utils/sanitizeUrl';
 
 import { Language, translations } from '../translations';
 
@@ -576,7 +577,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       {galleryUrls.filter(url => url.trim().startsWith('http')).map((url, index) => (
                         <div key={index} className="aspect-video bg-black rounded border border-white/10 overflow-hidden relative group">
                           <img 
-                            src={url.trim()} 
+                            src={sanitizeUrl(url.trim()) || 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800'} 
                             alt={`Preview #${index + 1}`} 
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -820,6 +821,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           <span>UID: <code className="text-gray-400">#{mod.id}</code></span>
                           <a 
                             href={mod.download_url} 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const sanitized = sanitizeUrl(mod.download_url);
+                              if (sanitized) {
+                                window.open(sanitized, '_blank', 'noopener,noreferrer');
+                              } else {
+                                triggerToast(
+                                  lang === 'ar' 
+                                    ? "رابط التحميل غير صالح أو غير آمن" 
+                                    : lang === 'fr' 
+                                    ? "Lien de téléchargement invalide ou dangereux" 
+                                    : "Invalid or unsafe download link", 
+                                  "info"
+                                );
+                              }
+                            }}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-gray-400 hover:text-white hover:underline flex items-center gap-0.5 shrink-0"

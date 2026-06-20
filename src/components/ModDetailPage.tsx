@@ -10,6 +10,7 @@ import { Mod } from '../types';
 import { getModById, incrementDownloadsCount, getMods } from '../supabaseClient';
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
+import { sanitizeUrl } from '../utils/sanitizeUrl';
 
 interface ModDetailPageProps {
   modId: number;
@@ -171,6 +172,18 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
 
   // Trigger modal
   const handleDownloadClick = () => {
+    const sanitizedDownloadUrl = sanitizeUrl(mod?.download_url);
+    if (!sanitizedDownloadUrl) {
+      triggerToast(
+        lang === 'ar' 
+          ? "رابط التحميل غير صالح أو غير آمن" 
+          : lang === 'fr' 
+          ? "Lien de téléchargement invalide ou dangereux" 
+          : "Invalid or unsafe download link", 
+        "info"
+      );
+      return;
+    }
     setIsModalOpen(true);
   };
 
@@ -178,6 +191,20 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const handleConfirmDownload = async () => {
     setIsModalOpen(false);
     if (!mod || isDownloading) return;
+
+    const sanitizedDownloadUrl = sanitizeUrl(mod.download_url);
+    if (!sanitizedDownloadUrl) {
+      triggerToast(
+        lang === 'ar' 
+          ? "رابط التحميل غير صالح أو غير آمن" 
+          : lang === 'fr' 
+          ? "Lien de téléchargement invalide ou dangereux" 
+          : "Invalid or unsafe download link", 
+        "info"
+      );
+      return;
+    }
+
     setIsDownloading(true);
     
     try {
@@ -200,7 +227,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
       onDownloaded(mod.id, nextCount);
 
       // Open target URL safe in secondary tab
-      window.open(mod.download_url, '_blank', 'noopener,noreferrer');
+      window.open(sanitizedDownloadUrl, '_blank', 'noopener,noreferrer');
       
       triggerToast(
         lang === 'ar' 
@@ -220,7 +247,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
           : "Error recording statistics, but starting download...", 
         "info"
       );
-      window.open(mod.download_url, '_blank', 'noopener,noreferrer');
+      window.open(sanitizedDownloadUrl, '_blank', 'noopener,noreferrer');
     } finally {
       setIsDownloading(false);
     }
@@ -307,7 +334,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
           {/* Main Huge Cover Image with elegant borders */}
           <div id="detail-image-wrapper" className="relative group rounded-xl overflow-hidden border border-white/5 bg-slate-950 shadow-2xl">
             <img 
-              src={activeImage || mod.image_url} 
+              src={sanitizeUrl(activeImage || mod.image_url) || 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800'} 
               alt={mod.name} 
               className="w-full h-auto max-h-[460px] object-cover filter saturate-75 transition-all duration-300"
               onError={(e) => {
@@ -373,7 +400,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                       }`}
                     >
                       <img 
-                        src={url} 
+                        src={sanitizeUrl(url) || 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800'} 
                         alt={`Screenshot #${i + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {

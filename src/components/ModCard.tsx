@@ -8,6 +8,7 @@ import { Download, Car, Truck, Bus, ChevronRight, Calendar, HelpCircle, Containe
 import { Mod } from '../types';
 import { Language, translations } from '../translations';
 import { HighlightText } from './HighlightText';
+import { sanitizeUrl } from '../utils/sanitizeUrl';
 
 interface ModCardProps {
   mod: Mod;
@@ -88,7 +89,7 @@ export const ModCard: React.FC<ModCardProps> = ({ mod, onSelect, lang = 'ar', se
       {/* Image Panel with skeleton loading fallback and zoom */}
       <div id={`mod-card-image-panel-${mod.id}`} className="relative h-36 w-full overflow-hidden bg-slate-950">
         <img 
-          src={mod.image_url || 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=800'} 
+          src={sanitizeUrl(mod.image_url) || 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800'} 
           alt={mod.name} 
           loading="lazy"
           className="w-full h-full object-cover filter saturate-75 opacity-90 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500"
