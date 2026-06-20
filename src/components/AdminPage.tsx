@@ -482,8 +482,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       } else {
         triggerToast("Failed to delete the mod", "info");
       }
-    } catch (err) {
-      triggerToast("Error triggering deletion query", "info");
+    } catch (err: any) {
+      const errMsg = err?.message || err?.details || JSON.stringify(err) || "Unknown database error";
+      triggerToast(`Deletion error: ${errMsg}`, "info");
     }
   };
 

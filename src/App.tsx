@@ -15,14 +15,15 @@ const DesignerAuthPage = lazy(() => import('./components/DesignerAuthPage'));
 const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage'));
 import { FeedbackToast } from './components/FeedbackToast';
 
-import { getMods, createMod, deleteMod, IS_DEMO_MODE } from './supabaseClient';
-import { Mod, RouteState } from './types';
+import { getMods, createMod, deleteMod, IS_DEMO_MODE, ModsDriveError } from './supabaseClient';
+import { Mod, RouteState, ActivePage } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
 import { Language, translations } from './translations';
 
 export default function App() {
   const [mods, setMods] = useState<Mod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<ModsDriveError | null>(null);
   
   // Multi-language state with localStorage persistence
   const [lang, setLang] = useState<Language>(() => {
@@ -143,9 +144,12 @@ export default function App() {
     try {
       const data = await getMods();
       setMods(data);
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
+      setError(err as ModsDriveError);
+      setMods([]);
       setToast({
-        message: "Unable to retrieve simulator catalogue from network.",
+        message: err.message || "Unable to retrieve simulator catalogue from network.",
         type: "info"
       });
     } finally {
@@ -160,7 +164,7 @@ export default function App() {
 
   // Navigation setter with support for preserving query parameters
   const handleNavigate = useCallback((
-    page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login', 
+    page: ActivePage, 
     selectedModId?: number,
     preserveParams = false
   ) => {
@@ -224,8 +228,8 @@ export default function App() {
       }
       return false;
     } catch (err) {
-      console.error(err);
-      return false;
+      console.error('App [handleDeleteMod]: Failed to delete mod:', err);
+      throw err;
     }
   }, []);
 
@@ -263,6 +267,7 @@ export default function App() {
             isMobileFilterOpen={isMobileFilterOpen}
             setIsMobileFilterOpen={setIsMobileFilterOpen}
             lang={lang}
+            error={error}
           />
         )}
 

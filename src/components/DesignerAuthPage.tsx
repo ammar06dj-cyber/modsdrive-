@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Mail, Lock, User, UserPlus, LogIn, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { supabaseClient, IS_DEMO_MODE } from '../supabaseClient';
+import { supabaseClient, IS_DEMO_MODE, signUpDesigner, signInDesigner, ModsDriveError } from '../supabaseClient';
 import { translations } from '../translations';
 
 interface DesignerAuthPageProps {
@@ -84,17 +84,7 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
     setIsSubmitting(true);
     try {
       if (activeTab === 'signup') {
-        const { data, error } = await supabaseClient!.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              display_name: displayName,
-            },
-          },
-        });
-
-        if (error) throw error;
+        const data = await signUpDesigner(email, password, displayName);
 
         if (data?.user) {
           triggerToast(t.authSuccessSignUp, 'success');
@@ -106,12 +96,7 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
           setDisplayName('');
         }
       } else {
-        const { data, error } = await supabaseClient!.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
+        const data = await signInDesigner(email, password);
 
         if (data?.user) {
           triggerToast(t.authSuccessSignIn, 'success');

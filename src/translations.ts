@@ -95,7 +95,11 @@ export const translations = {
     backToHome: "العودة للرئيسية",
     rateLimitError: "محاولات كثيرة. يرجى الانتظار.",
     rateLimitWait: "انتظر {minutes} دقيقة",
-    loading: "جاري التحميل..."
+    loading: "جاري التحميل...",
+    errorNetwork: "فشل الاتصال. تحقق من الإنترنت.",
+    errorDatabase: "خطأ في قاعدة البيانات. يرجى المحاولة لاحقاً.",
+    errorNotFound: "العنصر غير موجود.",
+    retryButton: "إعادة المحاولة"
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -186,7 +190,11 @@ export const translations = {
     backToHome: "Back to Home",
     rateLimitError: "Too many attempts. Please wait.",
     rateLimitWait: "Please wait {minutes} minutes",
-    loading: "Loading..."
+    loading: "Loading...",
+    errorNetwork: "Connection failed. Please check your internet.",
+    errorDatabase: "Database error. Please try again later.",
+    errorNotFound: "Item not found.",
+    retryButton: "Try Again"
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -277,6 +285,10 @@ export const translations = {
     backToHome: "Retour à l'accueil",
     rateLimitError: "Trop de tentatives. Veuillez patienter.",
     rateLimitWait: "Veuillez patienter {minutes} minutes",
-    loading: "Chargement..."
+    loading: "Chargement...",
+    errorNetwork: "Connexion échouée. Veuillez vérifier votre connexion internet.",
+    errorDatabase: "Erreur de base de données. Veuillez réessayer plus tard.",
+    errorNotFound: "Élément non trouvé.",
+    retryButton: "Réessayer"
   }
 };

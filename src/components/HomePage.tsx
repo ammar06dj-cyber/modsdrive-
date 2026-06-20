@@ -4,11 +4,12 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, SlidersHorizontal, RefreshCw, Car, Truck, Bus, HelpCircle, ArrowRight, Ship, Construction, Map, Bike, Newspaper, Plane, Tractor, X, MoreVertical, Container } from 'lucide-react';
+import { Search, SlidersHorizontal, RefreshCw, Car, Truck, Bus, HelpCircle, ArrowRight, Ship, Construction, Map, Bike, Newspaper, Plane, Tractor, X, MoreVertical, Container, WifiOff, AlertTriangle } from 'lucide-react';
 import { Mod } from '../types';
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 import { matchesSearchCriteria } from '../utils/search';
+import { ModsDriveError } from '../supabaseClient';
 
 const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
@@ -21,6 +22,7 @@ interface HomePageProps {
   isMobileFilterOpen: boolean;
   setIsMobileFilterOpen: (open: boolean) => void;
   lang?: Language;
+  error?: ModsDriveError | null;
 }
 
 const categoryItems = [
@@ -65,8 +67,15 @@ export const HomePage: React.FC<HomePageProps> = ({
   isMobileFilterOpen,
   setIsMobileFilterOpen,
   lang = 'ar',
+  error: propError = null,
 }) => {
   const t = translations[lang];
+
+  const [error, setError] = useState<ModsDriveError | null>(null);
+
+  useEffect(() => {
+    setError(propError || null);
+  }, [propError]);
 
   const getCategoryLabel = (key: string) => {
     switch (key) {
@@ -643,8 +652,32 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
-        {/* Loading / Actual displays state */}
-        {isLoading ? (
+        {/* Loading / Error / Actual displays state */}
+        {error ? (
+          <div id="homepage-error-state" className="flex flex-col items-center justify-center py-16 px-4 bg-dark-card border border-red-500/15 rounded-2xl text-center shadow-xl space-y-4 max-w-lg mx-auto my-8 relative overflow-hidden" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-red-500/50" />
+            <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 text-red-500">
+              {error.code === 'NETWORK_ERROR' ? (
+                <WifiOff className="w-8 h-8" />
+              ) : (
+                <AlertTriangle className="w-8 h-8" />
+              )}
+            </div>
+            <h3 className="text-lg font-bold text-white uppercase tracking-tight">
+              {error.code === 'NETWORK_ERROR' ? t.errorNetwork : t.errorDatabase}
+            </h3>
+            <p className="text-xs text-gray-400 font-sans max-w-sm">
+              {error.message || 'An unexpected error occurred while communicating with the database.'}
+            </p>
+            <button
+              onClick={onRefresh}
+              className="flex items-center gap-1.5 py-2.5 px-6 bg-brand-cyan hover:bg-[#FF7300] text-black font-extrabold uppercase rounded text-xs tracking-wider transition-colors duration-300 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>{t.retryButton}</span>
+            </button>
+          </div>
+        ) : isLoading ? (
           <div id="homepage-skeleton" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-dark-card/50 border border-white/5 rounded-xl overflow-hidden p-4 space-y-4 animate-pulse">

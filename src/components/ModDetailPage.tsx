@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Download, Share2, ShieldCheck, ShieldAlert, Database, Calendar, FileType, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Mod } from '../types';
-import { getModById, incrementDownloadsCount, getMods } from '../supabaseClient';
+import { getModById, incrementDownloadsCount, getMods, ModsDriveError } from '../supabaseClient';
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 import { sanitizeUrl } from '../utils/sanitizeUrl';
@@ -30,6 +30,7 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   const t = translations[lang];
   const [mod, setMod] = useState<Mod | null>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
+  const [error, setError] = useState<ModsDriveError | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [activeImage, setActiveImage] = useState<string>('');
 
@@ -116,17 +117,17 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   useEffect(() => {
     async function loadMod() {
       setIsPageLoading(true);
+      setError(null);
       try {
         const data = await getModById(modId);
         if (data) {
           setMod(data);
         } else {
-          triggerToast("Mod model details could not be retrieved", "info");
-          onBack();
+          throw new ModsDriveError('NOT_FOUND', 'Mod details not found');
         }
-      } catch (err) {
-        triggerToast("Failed to connect to the database", "info");
-        onBack();
+      } catch (err: any) {
+        console.error("Failed to load mod details:", err);
+        setError(err as ModsDriveError);
       } finally {
         setIsPageLoading(false);
       }
@@ -296,6 +297,62 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
             <div className="h-4 bg-slate-900 rounded w-5/6"></div>
           </div>
           <div className="bg-slate-900 border border-white/5 rounded h-48"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    const isNotFound = error.code === 'NOT_FOUND';
+    return (
+      <div id="detail-error-screen" className="max-w-md w-full mx-auto my-16 text-center" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
+        <div className="bg-dark-card border border-white/5 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-red-500" />
+          
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 text-red-500">
+              <ShieldAlert className="w-10 h-10" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-black text-white uppercase tracking-tight mb-2">
+            {isNotFound ? t.errorNotFound : (error.code === 'NETWORK_ERROR' ? t.errorNetwork : t.errorDatabase)}
+          </h2>
+          <p className="text-xs text-gray-400 font-sans mb-8 leading-relaxed max-w-xs mx-auto">
+            {isNotFound 
+              ? (lang === 'ar' ? 'العنصر الذي تبحث عنه غير موجود أو تم حذفه.' : lang === 'fr' ? 'L\'élément que vous recherchez n\'existe pas.' : 'The requested item does not exist or has been removed.')
+              : (error.message || 'An error occurred while fetching information.')}
+          </p>
+
+          <div className="flex gap-4 justify-center">
+            {isNotFound ? (
+              <button
+                onClick={onBack}
+                className="flex items-center gap-1.5 py-2.5 px-6 bg-brand-cyan hover:bg-[#FF7300] text-black font-extrabold uppercase rounded text-xs tracking-wider transition-colors duration-300 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>{t.backToHome}</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    setIsPageLoading(true);
+                  }}
+                  className="flex items-center gap-1.5 py-2.5 px-6 bg-brand-cyan hover:bg-[#FF7300] text-black font-extrabold uppercase rounded text-xs tracking-wider transition-colors duration-300 cursor-pointer"
+                >
+                  <span>{t.retryButton}</span>
+                </button>
+                <button
+                  onClick={onBack}
+                  className="flex items-center gap-1.5 py-2.5 px-6 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded text-xs uppercase tracking-wider transition-colors duration-300 border border-white/5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>{t.backToHome}</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );

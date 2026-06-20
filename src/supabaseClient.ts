@@ -6,6 +6,23 @@
 import { createClient } from '@supabase/supabase-js';
 import { Mod } from './types';
 
+// Custom error class for database/Supabase operations
+export class ModsDriveError extends Error {
+  code: 'NETWORK_ERROR' | 'DB_ERROR' | 'AUTH_ERROR' | 'NOT_FOUND' | 'RATE_LIMIT';
+  originalError: any;
+
+  constructor(
+    code: 'NETWORK_ERROR' | 'DB_ERROR' | 'AUTH_ERROR' | 'NOT_FOUND' | 'RATE_LIMIT',
+    message: string,
+    originalError?: any
+  ) {
+    super(message);
+    this.name = 'ModsDriveError';
+    this.code = code;
+    this.originalError = originalError;
+  }
+}
+
 // Helper to clean the Supabase URL by removing trailing slashes and /rest/v1 suffix
 const getCleanUrl = (url: string): string => {
   if (!url) return '';
@@ -307,16 +324,13 @@ export const getMods = async (): Promise<Mod[]> => {
         .or('status.eq.approved,status.is.null')
         .order('created_at', { ascending: false });
       if (error) {
-        throw error;
+        throw new ModsDriveError('DB_ERROR', error.message, error);
       }
-      const fetchedMods = data || [];
+      const fetchedMods = data as Mod[] || [];
       return fetchedMods.filter(isApproved);
     } catch (err) {
-      if (IS_DEV) {
-        console.warn('Failed to fetch from Supabase, falling back to Local Storage:', err);
-      }
-      const mods = getLocalStorageMods();
-      return mods.filter(isApproved);
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to connect to database', err);
     }
   }
 };
@@ -333,15 +347,18 @@ export const getModById = async (id: number): Promise<Mod | null> => {
         .eq('id', id)
         .single();
       if (error) {
-        throw error;
+        if (error.code === 'PGRST116') {
+          throw new ModsDriveError('NOT_FOUND', 'Mod not found', error);
+        }
+        throw new ModsDriveError('DB_ERROR', error.message, error);
       }
-      return data;
+      if (!data) {
+        throw new ModsDriveError('NOT_FOUND', 'Mod not found');
+      }
+      return data as Mod;
     } catch (err) {
-      if (IS_DEV) {
-        console.warn('Failed to fetch detail from Supabase, falling back to Local Storage:', err);
-      }
-      const mods = getLocalStorageMods();
-      return mods.find(m => m.id === id) || null;
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to connect to database', err);
     }
   }
 };
@@ -383,13 +400,9 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
       insertPayload.file_size = mod.file_size;
     }
 
-    if (IS_DEV) {
-      console.log('Supabase: executing INSERT query on table "mods" with payload:', insertPayload);
-    }
-
     try {
       if (!supabaseClient) {
-        throw new Error('Supabase client is not initialized');
+        throw new ModsDriveError('NETWORK_ERROR', 'Supabase client is not initialized');
       }
 
       const { data, error } = await supabaseClient
@@ -399,22 +412,12 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
         .single();
       
       if (error) {
-        if (IS_DEV) {
-          console.error('Supabase: Query returned error:', error);
-        }
-        throw error;
+        throw new ModsDriveError('DB_ERROR', error.message, error);
       }
-      
-      if (IS_DEV) {
-        console.log('Supabase: INSERT query succeeded. Saved mod:', data);
-      }
-      return data;
-    } catch (err: any) {
-      if (IS_DEV) {
-        console.error('Supabase: Exception occurred during insert operation:', err);
-      }
-      // Rethrow to bubble up to the UI so the user gets notified exactly why the DB rejected the request
-      throw err;
+      return data as Mod;
+    } catch (err) {
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to save mod', err);
     }
   }
 };
@@ -432,24 +435,18 @@ export const deleteMod = async (id: number): Promise<boolean> => {
         .delete()
         .eq('id', id);
       if (error) {
-        throw error;
+        throw new ModsDriveError('DB_ERROR', error.message, error);
       }
       return true;
     } catch (err) {
-      if (IS_DEV) {
-        console.warn('Failed to delete from Supabase, removing from Local Storage:', err);
-      }
-      const mods = getLocalStorageMods();
-      const filtered = mods.filter(m => m.id !== id);
-      setLocalStorageMods(filtered);
-      return true;
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to delete mod', err);
     }
   }
 };
 
 export const incrementDownloadsCount = async (id: number): Promise<number> => {
   if (IS_DEMO_MODE) {
-    // Note: Demo mode is single-user, so race conditions don't apply here
     const mods = getLocalStorageMods();
     const index = mods.findIndex(m => m.id === id);
     if (index !== -1) {
@@ -464,21 +461,55 @@ export const incrementDownloadsCount = async (id: number): Promise<number> => {
         .rpc('increment_downloads', { mod_id: id });
       
       if (error) {
-        throw error;
+        throw new ModsDriveError('DB_ERROR', error.message, error);
       }
       return data || 0;
     } catch (err) {
-      if (IS_DEV) {
-        console.warn('Failed to update download count in Supabase via RPC, updating Local Storage:', err);
-      }
-      const mods = getLocalStorageMods();
-      const index = mods.findIndex(m => m.id === id);
-      if (index !== -1) {
-        mods[index].downloads_count += 1;
-        setLocalStorageMods(mods);
-        return mods[index].downloads_count;
-      }
-      return 0;
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to increment download count', err);
     }
+  }
+};
+
+export const signUpDesigner = async (email: string, password: string, displayName: string): Promise<any> => {
+  if (IS_DEMO_MODE) {
+    throw new ModsDriveError('AUTH_ERROR', 'Signup is disabled in Demo Mode');
+  }
+  try {
+    const { data, error } = await supabaseClient!.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+        },
+      },
+    });
+    if (error) {
+      throw new ModsDriveError('AUTH_ERROR', error.message, error);
+    }
+    return data;
+  } catch (err) {
+    if (err instanceof ModsDriveError) throw err;
+    throw new ModsDriveError('NETWORK_ERROR', 'Authentication failed', err);
+  }
+};
+
+export const signInDesigner = async (email: string, password: string): Promise<any> => {
+  if (IS_DEMO_MODE) {
+    throw new ModsDriveError('AUTH_ERROR', 'Sign in is disabled in Demo Mode');
+  }
+  try {
+    const { data, error } = await supabaseClient!.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      throw new ModsDriveError('AUTH_ERROR', error.message, error);
+    }
+    return data;
+  } catch (err) {
+    if (err instanceof ModsDriveError) throw err;
+    throw new ModsDriveError('NETWORK_ERROR', 'Authentication failed', err);
   }
 };
