@@ -145,17 +145,35 @@ export default function App() {
     loadModsList();
   }, [loadModsList, route.page]);
 
-  // Navigation setter
-  const handleNavigate = useCallback((page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login', selectedModId?: number) => {
+  // Navigation setter with support for preserving query parameters
+  const handleNavigate = useCallback((
+    page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login', 
+    selectedModId?: number,
+    preserveParams = false
+  ) => {
     let path = '/';
     if (page === 'detail' && selectedModId !== undefined) {
+      if (window.location.pathname === '/' || window.location.pathname === '') {
+        sessionStorage.setItem('mods_drive_search_params', window.location.search);
+      }
       path = `/mod/${selectedModId}`;
     } else if (page === 'amdj0602') {
       path = '/amdj0602';
     } else if (page === 'privacy-policy') {
+      if (window.location.pathname === '/' || window.location.pathname === '') {
+        sessionStorage.setItem('mods_drive_search_params', window.location.search);
+      }
       path = '/privacy-policy';
     } else if (page === 'designer-login') {
       path = '/designer-login';
+    } else if (page === 'home') {
+      if (preserveParams) {
+        const savedSearch = sessionStorage.getItem('mods_drive_search_params') || '';
+        path = `/${savedSearch}`;
+      } else {
+        sessionStorage.removeItem('mods_drive_search_params');
+        path = '/';
+      }
     }
 
     window.history.pushState(null, '', path);
@@ -213,7 +231,7 @@ export default function App() {
       {/* Primary Navigation Header */}
       <Header 
         currentPage={route.page} 
-        onNavigate={(page) => handleNavigate(page)} 
+        onNavigate={(page) => handleNavigate(page, undefined, false)} 
         onToggleMobileFilter={() => setIsMobileFilterOpen(p => !p)}
         showMobileFilterButton={route.page === 'home'}
         lang={lang}
@@ -238,7 +256,7 @@ export default function App() {
         {route.page === 'detail' && route.selectedModId !== undefined && (
           <ModDetailPage
             modId={route.selectedModId}
-            onBack={() => handleNavigate('home')}
+            onBack={() => handleNavigate('home', undefined, true)}
             onDownloaded={handleDownloaded}
             triggerToast={triggerToast}
             lang={lang}
@@ -251,14 +269,14 @@ export default function App() {
             onAddMod={handleAddMod}
             onDeleteMod={handleDeleteMod}
             triggerToast={triggerToast}
-            onNavigateHome={() => handleNavigate('home')}
+            onNavigateHome={() => handleNavigate('home', undefined, true)}
             lang={lang}
           />
         )}
 
         {route.page === 'privacy-policy' && (
           <PrivacyPolicyPage
-            onBack={() => handleNavigate('home')}
+            onBack={() => handleNavigate('home', undefined, true)}
             lang={lang}
           />
         )}

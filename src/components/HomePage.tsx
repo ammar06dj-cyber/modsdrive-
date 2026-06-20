@@ -39,6 +39,23 @@ const categoryItems = [
 
 
 
+// Custom hook to listen to URL search changes
+export function useUrlState() {
+  const [searchParams, setSearchParams] = useState(() => new URLSearchParams(window.location.search));
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setSearchParams(new URLSearchParams(window.location.search));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  return searchParams;
+}
+
 export const HomePage: React.FC<HomePageProps> = ({
   mods,
   isLoading,
@@ -67,13 +84,93 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('search') || '';
+  });
   const [selectedCategory, setSelectedCategory] = useState<
     'all' | 'cars' | 'trucks' | 'buses' | 'boats' | 'excavators' | 'maps' | 'motorcycles' | 'news' | 'others' | 'planes' | 'tractors' | 'updates' | 'trailers'
-  >('all');
-  const [selectedVersion, setSelectedVersion] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'downloads' | 'newest' | 'id'>('downloads');
-  const [currentPage, setCurrentPage] = useState(1);
+  >(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('category') || 'all';
+    const valid = ['all', 'cars', 'trucks', 'buses', 'boats', 'excavators', 'maps', 'motorcycles', 'news', 'others', 'planes', 'tractors', 'updates', 'trailers'];
+    return (valid.includes(cat) ? cat : 'all') as any;
+  });
+  const [selectedVersion, setSelectedVersion] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('version') || 'all';
+  });
+  const [sortBy, setSortBy] = useState<'downloads' | 'newest' | 'id'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sort = params.get('sort') || 'downloads';
+    if (sort === 'downloads' || sort === 'newest' || sort === 'id') return sort;
+    return 'downloads';
+  });
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const page = parseInt(params.get('page') || '1', 10);
+    return isNaN(page) || page < 1 ? 1 : page;
+  });
+
+  const urlParams = useUrlState();
+
+  // Synchronize URL -> React State (bidirectionally on browser navigate/popstate)
+  useEffect(() => {
+    const search = urlParams.get('search') || '';
+    if (search !== searchTerm) setSearchTerm(search);
+
+    const cat = urlParams.get('category') || 'all';
+    const valid = ['all', 'cars', 'trucks', 'buses', 'boats', 'excavators', 'maps', 'motorcycles', 'news', 'others', 'planes', 'tractors', 'updates', 'trailers'];
+    const finalCat = valid.includes(cat) ? cat : 'all';
+    if (finalCat !== selectedCategory) setSelectedCategory(finalCat as any);
+
+    const ver = urlParams.get('version') || 'all';
+    if (ver !== selectedVersion) setSelectedVersion(ver);
+
+    const sort = urlParams.get('sort') || 'downloads';
+    const finalSort = (sort === 'downloads' || sort === 'newest' || sort === 'id') ? sort : 'downloads';
+    if (finalSort !== sortBy) setSortBy(finalSort as any);
+
+    const pageStr = urlParams.get('page');
+    const pageVal = pageStr ? parseInt(pageStr, 10) : 1;
+    const finalPage = isNaN(pageVal) || pageVal < 1 ? 1 : pageVal;
+    if (finalPage !== currentPage) setCurrentPage(finalPage);
+  }, [urlParams]);
+
+  // Synchronize React State -> URL Query String
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('search', searchTerm);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedVersion !== 'all') params.set('version', selectedVersion);
+    if (sortBy !== 'downloads') params.set('sort', sortBy);
+    if (currentPage !== 1) params.set('page', String(currentPage));
+
+    const newQueryString = params.toString() ? '?' + params.toString() : '';
+    const newUrl = `${window.location.pathname}${newQueryString}`;
+
+    if (window.location.search !== newQueryString) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [searchTerm, selectedCategory, selectedVersion, sortBy, currentPage]);
+
+  // Unified wrappers for updating filters that also trigger current page reset
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setCurrentPage(1);
+  };
+  const handleCategoryChange = (cat: typeof selectedCategory) => {
+    setSelectedCategory(cat);
+    setCurrentPage(1);
+  };
+  const handleVersionChange = (ver: string) => {
+    setSelectedVersion(ver);
+    setCurrentPage(1);
+  };
+  const handleSortChange = (sort: typeof sortBy) => {
+    setSortBy(sort);
+    setCurrentPage(1);
+  };
 
   // Dynamically extract unique game versions from the loaded mods
   const dynamicGameVersions = useMemo(() => {
@@ -234,11 +331,6 @@ export const HomePage: React.FC<HomePageProps> = ({
     return result;
   }, [mods, searchTerm, selectedCategory, selectedVersion, sortBy, dynamicGameVersions]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedVersion, sortBy]);
-
   const itemsPerPage = 8;
   const totalPages = Math.ceil(filteredAndSortedMods.length / itemsPerPage);
 
@@ -294,7 +386,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="space-y-1 text-xs font-semibold max-h-[280px] overflow-y-auto pr-1">
                 <button
                   onClick={() => {
-                    setSelectedCategory('all');
+                    handleCategoryChange('all');
                     setIsMobileFilterOpen(false);
                   }}
                   className={`w-full text-right px-3 py-2 border-r-2 transition-all flex justify-between items-center ${
@@ -314,7 +406,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <button
                       key={item.key}
                       onClick={() => {
-                        setSelectedCategory(item.key);
+                        handleCategoryChange(item.key);
                         setIsMobileFilterOpen(false);
                       }}
                       className={`w-full text-right px-3 py-2 border-r-2 transition-all flex justify-between items-center ${
@@ -343,7 +435,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="space-y-1 text-xs font-semibold max-h-[220px] overflow-y-auto pr-1">
                 <button
                   onClick={() => {
-                    setSelectedVersion('all');
+                    handleVersionChange('all');
                     setIsMobileFilterOpen(false);
                   }}
                   className={`w-full text-right px-3 py-2 border-r-2 transition-all flex justify-between items-center ${
@@ -361,7 +453,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <button
                     key={v}
                     onClick={() => {
-                      setSelectedVersion(v);
+                      handleVersionChange(v);
                       setIsMobileFilterOpen(false);
                     }}
                     className={`w-full text-right px-3 py-2 border-r-2 transition-all flex justify-between items-center ${
@@ -400,7 +492,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="space-y-1 text-xs font-semibold max-h-[380px] overflow-y-auto pr-1">
             
             <button
-              onClick={() => setSelectedCategory('all')}
+              onClick={() => handleCategoryChange('all')}
               className={`w-full text-left px-3 py-2.5 rounded transition-all flex justify-between items-center ${
                 selectedCategory === 'all'
                   ? 'bg-brand-cyan/10 text-brand-cyan'
@@ -416,7 +508,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               return (
                 <button
                   key={item.key}
-                  onClick={() => setSelectedCategory(item.key)}
+                  onClick={() => handleCategoryChange(item.key)}
                   className={`w-full text-left px-3 py-2.5 rounded transition-all flex justify-between items-center ${
                     selectedCategory === item.key
                       ? 'bg-brand-cyan/10 text-brand-cyan'
@@ -443,7 +535,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="space-y-1 text-xs font-semibold max-h-[300px] overflow-y-auto pr-1">
             
             <button
-              onClick={() => setSelectedVersion('all')}
+              onClick={() => handleVersionChange('all')}
               className={`w-full text-left px-3 py-2.5 rounded transition-all flex justify-between items-center ${
                 selectedVersion === 'all'
                   ? 'bg-brand-cyan/10 text-brand-cyan'
@@ -457,7 +549,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {dynamicGameVersions.map((version) => (
               <button
                 key={version}
-                onClick={() => setSelectedVersion(version)}
+                onClick={() => handleVersionChange(version)}
                 className={`w-full text-left px-3 py-2.5 rounded transition-all flex justify-between items-center ${
                   selectedVersion === version
                     ? 'bg-brand-cyan/10 text-brand-cyan'
@@ -504,12 +596,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                 type="text" 
                 placeholder={t.searchPlaceholder} 
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full text-xs bg-dark-input border border-white/10 rounded-lg py-2.5 pl-10 pr-12 text-gray-200 focus:outline-none focus:border-brand-cyan transition-colors placeholder-gray-500 font-semibold"
               />
               {searchTerm && (
                 <button 
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => handleSearchChange('')}
                   className="absolute right-3 text-brand-cyan hover:text-rose-400 text-xs font-mono font-bold"
                 >
                   {lang === 'ar' ? 'مسح' : lang === 'fr' ? 'Effacer' : 'Clear'}
@@ -523,7 +615,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="relative flex-1 md:w-48">
                 <select 
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  onChange={(e) => handleSortChange(e.target.value as any)}
                   className="w-full bg-dark-input border border-white/10 rounded-lg py-2.5 pl-3 pr-8 text-xs text-brand-cyan focus:outline-none focus:border-brand-cyan transition-colors font-bold uppercase tracking-wide cursor-pointer appearance-none"
                 >
                   <option value="downloads" className="text-white bg-dark-card">🔥 {t.sortByDownloads}</option>
@@ -655,8 +747,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <button 
               onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('all');
+                handleSearchChange('');
+                handleCategoryChange('all');
               }}
               className="text-[10px] bg-white/5 border border-white/10 hover:bg-white/10 text-brand-cyan px-4 py-2 rounded font-black tracking-tighter uppercase"
             >
