@@ -15,6 +15,13 @@ import { Language, translations } from '../translations';
 
 const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
+// Module-level fallback variables to survive component unmounting/remounting
+// within the same browser tab session, or as a robust fallback if sessionStorage
+// is restricted/disabled inside the sandboxed iframe.
+let moduleFailedAttempts = 0;
+let moduleLockoutUntil: number | null = null;
+let moduleIsAuthenticated = false;
+
 const safeSessionStorage = {
   getItem: (key: string): string | null => {
     try {
@@ -53,40 +60,63 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   lang = 'ar',
 }) => {
   const [password, setPassword] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (moduleIsAuthenticated) return true;
+    const isAuthed = safeSessionStorage.getItem('admin_authenticated');
+    if (isAuthed === 'true') {
+      moduleIsAuthenticated = true;
+      return true;
+    }
+    return false;
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [modPendingDelete, setModPendingDelete] = useState<{ id: number; name: string } | null>(null);
 
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
-
-  // Load initial admin authentication / lockout states on mount safely
-  useEffect(() => {
-    const isAuthed = safeSessionStorage.getItem('admin_authenticated');
-    if (isAuthed === 'true') {
-      setIsAuthenticated(true);
-    }
-
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
     const storedAttempts = safeSessionStorage.getItem('admin_failed_attempts');
     if (storedAttempts) {
       const parsed = parseInt(storedAttempts, 10);
-      if (!isNaN(parsed)) setFailedAttempts(parsed);
+      if (!isNaN(parsed)) {
+        moduleFailedAttempts = Math.max(moduleFailedAttempts, parsed);
+        return parsed;
+      }
     }
+    return moduleFailedAttempts;
+  });
 
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(() => {
     const storedLockout = safeSessionStorage.getItem('admin_lockout_until');
     if (storedLockout) {
       const parsed = parseInt(storedLockout, 10);
       if (!isNaN(parsed) && parsed > Date.now()) {
-        setLockoutUntil(parsed);
-        setRemainingSeconds(Math.ceil((parsed - Date.now()) / 1000));
+        moduleLockoutUntil = parsed;
+        return parsed;
       } else if (!isNaN(parsed) && parsed <= Date.now()) {
         // lockout expired
         safeSessionStorage.setItem('admin_failed_attempts', '0');
         safeSessionStorage.removeItem('admin_lockout_until');
-        setFailedAttempts(0);
-        setLockoutUntil(null);
+        moduleFailedAttempts = 0;
+        moduleLockoutUntil = null;
       }
+    }
+    if (moduleLockoutUntil && moduleLockoutUntil > Date.now()) {
+      return moduleLockoutUntil;
+    }
+    return null;
+  });
+
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(() => {
+    const target = lockoutUntil || moduleLockoutUntil;
+    if (target && target > Date.now()) {
+      return Math.ceil((target - Date.now()) / 1000);
+    }
+    return 0;
+  });
+
+  // Load initial states on mount
+  useEffect(() => {
+    if (moduleIsAuthenticated) {
+      setIsAuthenticated(true);
     }
   }, []);
 
@@ -97,6 +127,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       return;
     }
 
+    setRemainingSeconds(Math.ceil((lockoutUntil - Date.now()) / 1000));
+
     const interval = setInterval(() => {
       const now = Date.now();
       const diff = lockoutUntil - now;
@@ -104,6 +136,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         setLockoutUntil(null);
         setRemainingSeconds(0);
         setFailedAttempts(0);
+        moduleFailedAttempts = 0;
+        moduleLockoutUntil = null;
         safeSessionStorage.setItem('admin_failed_attempts', '0');
         safeSessionStorage.removeItem('admin_lockout_until');
       } else {
@@ -251,7 +285,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       return;
     }
 
-    const adminPassword = (import.meta as any).env?.VITE_ADMIN_PASSWORD;
+    // @ts-ignore
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     if (!adminPassword) {
       triggerToast("Admin access is not configured", "info");
       return;
@@ -266,8 +301,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
      */
     if (password === adminPassword) {
       setIsAuthenticated(true);
+      moduleIsAuthenticated = true;
       setFailedAttempts(0);
+      moduleFailedAttempts = 0;
       setLockoutUntil(null);
+      moduleLockoutUntil = null;
       setRemainingSeconds(0);
       safeSessionStorage.setItem('admin_authenticated', 'true');
       safeSessionStorage.setItem('admin_failed_attempts', '0');
@@ -276,6 +314,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     } else {
       const nextAttemptsCount = failedAttempts + 1;
       setFailedAttempts(nextAttemptsCount);
+      moduleFailedAttempts = nextAttemptsCount;
       safeSessionStorage.setItem('admin_failed_attempts', String(nextAttemptsCount));
 
       // Calculate escalating delays based on count of attempts
@@ -295,6 +334,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       if (nextDelaySeconds > 0) {
         const lockoutTime = Date.now() + nextDelaySeconds * 1000;
         setLockoutUntil(lockoutTime);
+        moduleLockoutUntil = lockoutTime;
         setRemainingSeconds(nextDelaySeconds);
         safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
 
@@ -457,6 +497,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    moduleIsAuthenticated = false;
     safeSessionStorage.removeItem('admin_authenticated');
     setPassword('');
     triggerToast("Logged out successfully.", "info");
