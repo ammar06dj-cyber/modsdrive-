@@ -15,6 +15,26 @@ import { Language, translations } from '../translations';
 
 const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
+const safeSessionStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {}
+  },
+  removeItem: (key: string): void => {
+    try {
+      sessionStorage.removeItem(key);
+    } catch (e) {}
+  }
+};
+
 interface AdminPageProps {
   mods: Mod[];
   onAddMod: (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_count'>) => Promise<boolean>;
@@ -36,6 +56,63 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [modPendingDelete, setModPendingDelete] = useState<{ id: number; name: string } | null>(null);
+
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+
+  // Load initial admin authentication / lockout states on mount safely
+  useEffect(() => {
+    const isAuthed = safeSessionStorage.getItem('admin_authenticated');
+    if (isAuthed === 'true') {
+      setIsAuthenticated(true);
+    }
+
+    const storedAttempts = safeSessionStorage.getItem('admin_failed_attempts');
+    if (storedAttempts) {
+      const parsed = parseInt(storedAttempts, 10);
+      if (!isNaN(parsed)) setFailedAttempts(parsed);
+    }
+
+    const storedLockout = safeSessionStorage.getItem('admin_lockout_until');
+    if (storedLockout) {
+      const parsed = parseInt(storedLockout, 10);
+      if (!isNaN(parsed) && parsed > Date.now()) {
+        setLockoutUntil(parsed);
+        setRemainingSeconds(Math.ceil((parsed - Date.now()) / 1000));
+      } else if (!isNaN(parsed) && parsed <= Date.now()) {
+        // lockout expired
+        safeSessionStorage.setItem('admin_failed_attempts', '0');
+        safeSessionStorage.removeItem('admin_lockout_until');
+        setFailedAttempts(0);
+        setLockoutUntil(null);
+      }
+    }
+  }, []);
+
+  // Lockout / delay live countdown timer
+  useEffect(() => {
+    if (!lockoutUntil) {
+      setRemainingSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const diff = lockoutUntil - now;
+      if (diff <= 0) {
+        setLockoutUntil(null);
+        setRemainingSeconds(0);
+        setFailedAttempts(0);
+        safeSessionStorage.setItem('admin_failed_attempts', '0');
+        safeSessionStorage.removeItem('admin_lockout_until');
+      } else {
+        setRemainingSeconds(Math.ceil(diff / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
 
   useEffect(() => {
     if (modPendingDelete) {
@@ -160,16 +237,89 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   // Handle password submission
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if currently locked out or delaying
+    if (remainingSeconds > 0) {
+      triggerToast(
+        lang === 'ar'
+          ? `الرجاء الانتظار ${remainingSeconds} ثانية قبل المحاولة مرة أخرى.`
+          : lang === 'fr'
+          ? `Veuillez patienter ${remainingSeconds} secondes.`
+          : `Please wait ${remainingSeconds} seconds before trying again.`,
+        "info"
+      );
+      return;
+    }
+
     const adminPassword = (import.meta as any).env?.VITE_ADMIN_PASSWORD;
     if (!adminPassword) {
       triggerToast("Admin access is not configured", "info");
       return;
     }
+
+    /* 
+     * IMPORTANT SECURITY NOTE:
+     * This rate-limiting is a client-side solution suitable for small-scale projects.
+     * In a production system with real designer accounts, real security, and protection 
+     * against programmatic bypass, this MUST be implemented on the backend/server rate limiter, 
+     * such as using Supabase Auth with dedicated admin roles or Cloudflare Workers rate limiting at the edge.
+     */
     if (password === adminPassword) {
       setIsAuthenticated(true);
+      setFailedAttempts(0);
+      setLockoutUntil(null);
+      setRemainingSeconds(0);
+      safeSessionStorage.setItem('admin_authenticated', 'true');
+      safeSessionStorage.setItem('admin_failed_attempts', '0');
+      safeSessionStorage.removeItem('admin_lockout_until');
       triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
     } else {
-      triggerToast("Access Denied! Incorrect security code.", "info");
+      const nextAttemptsCount = failedAttempts + 1;
+      setFailedAttempts(nextAttemptsCount);
+      safeSessionStorage.setItem('admin_failed_attempts', String(nextAttemptsCount));
+
+      // Calculate escalating delays based on count of attempts
+      let nextDelaySeconds = 0;
+      if (nextAttemptsCount === 1) {
+        nextDelaySeconds = 0;
+      } else if (nextAttemptsCount === 2) {
+        nextDelaySeconds = 2;
+      } else if (nextAttemptsCount === 3) {
+        nextDelaySeconds = 4;
+      } else if (nextAttemptsCount === 4) {
+        nextDelaySeconds = 8;
+      } else if (nextAttemptsCount >= 5) {
+        nextDelaySeconds = 60;
+      }
+
+      if (nextDelaySeconds > 0) {
+        const lockoutTime = Date.now() + nextDelaySeconds * 1000;
+        setLockoutUntil(lockoutTime);
+        setRemainingSeconds(nextDelaySeconds);
+        safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
+
+        if (nextAttemptsCount >= 5) {
+          triggerToast(
+            lang === 'ar'
+              ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد ${nextDelaySeconds} ثانية.`
+              : lang === 'fr'
+              ? `Trop de tentatives échouées. Réessayez dans ${nextDelaySeconds} secondes.`
+              : `Too many failed attempts. Try again in ${nextDelaySeconds} seconds.`,
+            "info"
+          );
+        } else {
+          triggerToast(
+            lang === 'ar'
+              ? `رمز خاطئ. يرجى الانتظار ${nextDelaySeconds} ثانية.`
+              : lang === 'fr'
+              ? `Code incorrect. Veuillez patienter ${nextDelaySeconds} secondes.`
+              : `Incorrect pass code. Please wait ${nextDelaySeconds} seconds.`,
+            "info"
+          );
+        }
+      } else {
+        triggerToast("Access Denied! Incorrect security code.", "info");
+      }
     }
   };
 
@@ -305,6 +455,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    safeSessionStorage.removeItem('admin_authenticated');
+    setPassword('');
+    triggerToast("Logged out successfully.", "info");
+  };
+
+  const isLockedOrDelayed = remainingSeconds > 0;
+
   // Lock Screen View
   if (!isAuthenticated) {
     return (
@@ -331,13 +490,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   placeholder="Enter Passcode..." 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full text-xs bg-dark-input border border-white/10 text-white pl-10 pr-10 py-2.5 rounded outline-none focus:border-brand-cyan/80 transition-all font-mono"
+                  disabled={isLockedOrDelayed}
+                  className="w-full text-xs bg-dark-input border border-white/10 text-white pl-10 pr-10 py-2.5 rounded outline-none focus:border-brand-cyan/80 transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-cyan transition-colors focus:outline-none"
+                  disabled={isLockedOrDelayed}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-cyan transition-colors focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -351,11 +512,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             </div>
 
+            {isLockedOrDelayed && (
+              <div className="text-xs text-red-400 bg-red-950/25 border border-red-500/20 rounded p-2.5 text-center font-mono animate-pulse">
+                {failedAttempts >= 5 ? (
+                  lang === 'ar'
+                    ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد ${remainingSeconds} ثانية.`
+                    : lang === 'fr'
+                    ? `Trop de tentatives échouées. Réessayez dans ${remainingSeconds} secondes.`
+                    : `Too many failed attempts. Try again in ${remainingSeconds} seconds.`
+                ) : (
+                  lang === 'ar'
+                    ? `الرجاء الانتظار ${remainingSeconds} ثانية قبل المحاولة مجدداً.`
+                    : lang === 'fr'
+                    ? `Veuillez patienter ${remainingSeconds} secondes.`
+                    : `Please wait ${remainingSeconds} seconds before trying again.`
+                )}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-brand-cyan hover:bg-[#FF7300] text-black font-black py-2.5 px-4 rounded text-xs transition-colors shadow-[0_0_15px_rgba(255,92,0,0.25)] flex items-center justify-center gap-2 cursor-pointer uppercase tracking-tighter"
+              disabled={isLockedOrDelayed}
+              className="w-full bg-brand-cyan hover:bg-[#FF7300] text-black font-black py-2.5 px-4 rounded text-xs transition-colors shadow-[0_0_15px_rgba(255,92,0,0.25)] flex items-center justify-center gap-2 cursor-pointer uppercase tracking-tighter disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-850 disabled:text-slate-500 disabled:shadow-none"
             >
-              <span>Authorize Access</span>
+              <span>{isLockedOrDelayed ? (lang === 'ar' ? 'البوابة مغلقة' : lang === 'fr' ? 'Terminal Verrouillé' : 'Terminal Locked') : 'Authorize Access'}</span>
             </button>
           </form>
 
@@ -388,7 +568,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         </div>
 
         <button
-          onClick={() => setIsAuthenticated(false)}
+          onClick={handleLogout}
           className="self-start sm:self-auto bg-white/5 border border-white/10 text-gray-400 hover:text-brand-cyan px-3.5 py-1.5 rounded text-xs font-mono transition-colors"
         >
           Session Lock (Logout)
