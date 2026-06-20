@@ -19,20 +19,49 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Cloud Run ingress / reverse proxy trust setting
+  app.set("trust proxy", 1);
+
   app.use(express.json());
 
-  // Define admin authentication rate limiter: max 10 requests per 15 minutes per IP
+  // Define admin authentication rate limiter: max 5 requests per 15 minutes per IP
   const adminAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10,
-    message: { authenticated: false, error: "Too many authentication attempts. Please try again later." },
+    max: 5,
+    message: { error: "Too many attempts. Try again later." },
+    statusCode: 429,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (forwarded) {
+        return typeof forwarded === "string" ? forwarded.split(",")[0].trim() : String(forwarded);
+      }
+      return req.ip || "unknown";
+    },
+  });
+
+  // Define general rate limiter for all other routes: max 100 requests per 15 minutes per IP
+  const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: { error: "Too many requests. Please try again later." },
+    statusCode: 429,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (forwarded) {
+        return typeof forwarded === "string" ? forwarded.split(",")[0].trim() : String(forwarded);
+      }
+      return req.ip || "unknown";
+    },
   });
 
   // Admin Auth POST endpoint
   app.post("/api/admin-auth", adminAuthLimiter, (req, res) => {
     const { password } = req.body;
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || req.ip;
 
     if (!password) {
       res.status(400).json({ error: "Password is required" });
@@ -53,12 +82,22 @@ async function startServer() {
 
     const isMatch = safeCompare(password, adminPassword);
 
-    if (isMatch) {
-      res.status(200).json({ authenticated: true });
-    } else {
-      res.status(401).json({ authenticated: false });
-    }
+    // Apply random delay to prevent timing attacks (100ms - 300ms)
+    const delay = Math.floor(Math.random() * 201) + 100;
+
+    setTimeout(() => {
+      if (isMatch) {
+        res.status(200).json({ authenticated: true });
+      } else {
+        const timestamp = new Date().toISOString();
+        console.warn(`[FAILED AUTH] [${timestamp}] Failed admin login attempt from IP: ${ip}`);
+        res.status(401).json({ authenticated: false, error: "Invalid authentication credentials." });
+      }
+    }, delay);
   });
+
+  // Apply general rate limit to all other routes
+  app.use(generalLimiter);
 
   // Serve Vite application
   if (process.env.NODE_ENV !== "production") {

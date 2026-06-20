@@ -269,6 +269,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         body: JSON.stringify({ password }),
       });
 
+      if (response.status === 429) {
+        const durationMin = 15;
+        const durationMs = durationMin * 60 * 1000;
+        const lockoutTime = Date.now() + durationMs;
+        safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
+        moduleLockoutUntil = lockoutTime;
+        setLockoutUntil(lockoutTime);
+
+        setFailedAttempts(prev => Math.max(prev, 5));
+        moduleFailedAttempts = 5;
+        safeSessionStorage.setItem('admin_failed_attempts', '5');
+
+        let msg = '';
+        if (lang === 'ar') {
+          msg = `محاولات كثيرة من هذا الشبكة. انتظر ${durationMin} دقيقة.`;
+        } else if (lang === 'fr') {
+          msg = `Trop de tentatives depuis ce réseau. Veuillez patienter ${durationMin} minutes.`;
+        } else {
+          msg = `Too many attempts from this network. Please wait ${durationMin} minutes.`;
+        }
+        triggerToast(msg, "info");
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok && data.authenticated) {
