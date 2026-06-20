@@ -810,3 +810,6 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
     </div>
   );
 };
+
+export default ModDetailPage;
+

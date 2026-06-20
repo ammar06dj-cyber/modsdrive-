@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
-import { ModDetailPage } from './components/ModDetailPage';
-import { AdminPage } from './components/AdminPage';
-import { FeedbackToast } from './components/FeedbackToast';
-import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
-import { DesignerAuthPage } from './components/DesignerAuthPage';
 import { NotFoundPage } from './components/NotFoundPage';
+import { PageLoadingSkeleton } from './components/PageLoadingSkeleton';
+
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const ModDetailPage = lazy(() => import('./components/ModDetailPage'));
+const DesignerAuthPage = lazy(() => import('./components/DesignerAuthPage'));
+const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage'));
+import { FeedbackToast } from './components/FeedbackToast';
+
 import { getMods, createMod, deleteMod, IS_DEMO_MODE } from './supabaseClient';
 import { Mod, RouteState } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
@@ -264,38 +267,46 @@ export default function App() {
         )}
 
         {route.page === 'detail' && route.selectedModId !== undefined && (
-          <ModDetailPage
-            modId={route.selectedModId}
-            onBack={() => handleNavigate('home', undefined, true)}
-            onDownloaded={handleDownloaded}
-            triggerToast={triggerToast}
-            lang={lang}
-          />
+          <Suspense fallback={<PageLoadingSkeleton lang={lang} />}>
+            <ModDetailPage
+              modId={route.selectedModId}
+              onBack={() => handleNavigate('home', undefined, true)}
+              onDownloaded={handleDownloaded}
+              triggerToast={triggerToast}
+              lang={lang}
+            />
+          </Suspense>
         )}
 
         {route.page === 'amdj0602' && (
-          <AdminPage
-            mods={mods}
-            onAddMod={handleAddMod}
-            onDeleteMod={handleDeleteMod}
-            triggerToast={triggerToast}
-            onNavigateHome={() => handleNavigate('home', undefined, true)}
-            lang={lang}
-          />
+          <Suspense fallback={<PageLoadingSkeleton lang={lang} />}>
+            <AdminPage
+              mods={mods}
+              onAddMod={handleAddMod}
+              onDeleteMod={handleDeleteMod}
+              triggerToast={triggerToast}
+              onNavigateHome={() => handleNavigate('home', undefined, true)}
+              lang={lang}
+            />
+          </Suspense>
         )}
 
         {route.page === 'privacy-policy' && (
-          <PrivacyPolicyPage
-            onBack={() => handleNavigate('home', undefined, true)}
-            lang={lang}
-          />
+          <Suspense fallback={<PageLoadingSkeleton lang={lang} />}>
+            <PrivacyPolicyPage
+              onBack={() => handleNavigate('home', undefined, true)}
+              lang={lang}
+            />
+          </Suspense>
         )}
 
         {route.page === 'designer-login' && (
-          <DesignerAuthPage
-            lang={lang}
-            triggerToast={triggerToast}
-          />
+          <Suspense fallback={<PageLoadingSkeleton lang={lang} />}>
+            <DesignerAuthPage
+              lang={lang}
+              triggerToast={triggerToast}
+            />
+          </Suspense>
         )}
 
         {route.page === 'not-found' && (

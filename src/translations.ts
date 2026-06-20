@@ -94,7 +94,8 @@ export const translations = {
     notFoundDesc: "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
     backToHome: "العودة للرئيسية",
     rateLimitError: "محاولات كثيرة. يرجى الانتظار.",
-    rateLimitWait: "انتظر {minutes} دقيقة"
+    rateLimitWait: "انتظر {minutes} دقيقة",
+    loading: "جاري التحميل..."
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -184,7 +185,8 @@ export const translations = {
     notFoundDesc: "The page you are looking for does not exist or has been moved.",
     backToHome: "Back to Home",
     rateLimitError: "Too many attempts. Please wait.",
-    rateLimitWait: "Please wait {minutes} minutes"
+    rateLimitWait: "Please wait {minutes} minutes",
+    loading: "Loading..."
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -274,6 +276,7 @@ export const translations = {
     notFoundDesc: "La page que vous recherchez n'existe pas ou a été déplacée.",
     backToHome: "Retour à l'accueil",
     rateLimitError: "Trop de tentatives. Veuillez patienter.",
-    rateLimitWait: "Veuillez patienter {minutes} minutes"
+    rateLimitWait: "Veuillez patienter {minutes} minutes",
+    loading: "Chargement..."
   }
 };

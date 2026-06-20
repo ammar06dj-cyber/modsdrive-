@@ -359,3 +359,6 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
     </div>
   );
 }
+
+export default DesignerAuthPage;
+

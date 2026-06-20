@@ -1217,3 +1217,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     </div>
   );
 };
+
+export default AdminPage;
+

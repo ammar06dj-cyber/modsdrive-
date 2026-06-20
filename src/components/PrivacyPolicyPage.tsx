@@ -200,3 +200,6 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack, la
     </div>
   );
 };
+
+export default PrivacyPolicyPage;
+

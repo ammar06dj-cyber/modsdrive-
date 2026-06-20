@@ -32,13 +32,6 @@ async function startServer() {
     statusCode: 429,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-      const forwarded = req.headers["x-forwarded-for"];
-      if (forwarded) {
-        return typeof forwarded === "string" ? forwarded.split(",")[0].trim() : String(forwarded);
-      }
-      return req.ip || "unknown";
-    },
   });
 
   // Define general rate limiter for all other routes: max 100 requests per 15 minutes per IP
@@ -49,13 +42,6 @@ async function startServer() {
     statusCode: 429,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-      const forwarded = req.headers["x-forwarded-for"];
-      if (forwarded) {
-        return typeof forwarded === "string" ? forwarded.split(",")[0].trim() : String(forwarded);
-      }
-      return req.ip || "unknown";
-    },
   });
 
   // Admin Auth POST endpoint
