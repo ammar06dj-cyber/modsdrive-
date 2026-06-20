@@ -11,6 +11,7 @@ import { AdminPage } from './components/AdminPage';
 import { FeedbackToast } from './components/FeedbackToast';
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { DesignerAuthPage } from './components/DesignerAuthPage';
+import { NotFoundPage } from './components/NotFoundPage';
 import { getMods, createMod, deleteMod, IS_DEMO_MODE } from './supabaseClient';
 import { Mod, RouteState } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
@@ -66,10 +67,17 @@ export default function App() {
 
     const pathname = window.location.pathname;
     
-    if (pathname.startsWith('/mod/')) {
+    if (pathname === '/' || pathname === '') {
+      return { page: 'home' };
+    } else if (pathname.startsWith('/mod/')) {
       const parts = pathname.split('/');
-      const id = parseInt(parts[2], 10);
-      return { page: 'detail', selectedModId: isNaN(id) ? undefined : id };
+      if (parts.length === 3) {
+        const id = parseInt(parts[2], 10);
+        if (!isNaN(id) && id > 0 && pathname === `/mod/${id}`) {
+          return { page: 'detail', selectedModId: id };
+        }
+      }
+      return { page: 'not-found' };
     } else if (pathname === '/amdj0602' || pathname.endsWith('/amdj0602')) {
       return { page: 'amdj0602' };
     } else if (pathname === '/privacy-policy' || pathname.endsWith('/privacy-policy')) {
@@ -77,7 +85,7 @@ export default function App() {
     } else if (pathname === '/designer-login' || pathname.endsWith('/designer-login')) {
       return { page: 'designer-login' };
     } else {
-      return { page: 'home' };
+      return { page: 'not-found' };
     }
   }, []);
 
@@ -106,6 +114,8 @@ export default function App() {
       document.title = "Admin - ModsDrive";
     } else if (route.page === 'designer-login') {
       document.title = "Designers - ModsDrive";
+    } else if (route.page === 'not-found') {
+      document.title = "404 - ModsDrive";
     }
   }, [route, mods]);
 
@@ -285,6 +295,13 @@ export default function App() {
           <DesignerAuthPage
             lang={lang}
             triggerToast={triggerToast}
+          />
+        )}
+
+        {route.page === 'not-found' && (
+          <NotFoundPage
+            lang={lang}
+            onNavigateHome={() => handleNavigate('home')}
           />
         )}
       </main>

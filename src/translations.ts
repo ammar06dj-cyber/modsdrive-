@@ -88,7 +88,11 @@ export const translations = {
     demoModeAuthWarning: "تتطلب حسابات المصممين اتصالاً مباشراً بقاعدة البيانات. هذه الميزة غير متوفرة في وضع العرض التوضيحي.",
     authSuccessSignUp: "تم إنشاء الحساب بنجاح!",
     authSuccessSignIn: "تم تسجيل الدخول بنجاح!",
-    loggedInAs: "تم تسجيل الدخول كـ:"
+    loggedInAs: "تم تسجيل الدخول كـ:",
+    notFoundTitle: "404",
+    notFoundMessage: "الصفحة غير موجودة",
+    notFoundDesc: "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    backToHome: "العودة للرئيسية"
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -172,7 +176,11 @@ export const translations = {
     demoModeAuthWarning: "Designer accounts require a live database connection. This feature is not available in demo mode.",
     authSuccessSignUp: "Account created successfully!",
     authSuccessSignIn: "Signed in successfully!",
-    loggedInAs: "Logged in as:"
+    loggedInAs: "Logged in as:",
+    notFoundTitle: "404",
+    notFoundMessage: "Page not found",
+    notFoundDesc: "The page you are looking for does not exist or has been moved.",
+    backToHome: "Back to Home"
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -256,6 +264,10 @@ export const translations = {
     demoModeAuthWarning: "Les comptes de designer nécessitent une connexion active à la base de données. Cette fonctionnalité n'est pas disponible en mode démo.",
     authSuccessSignUp: "Compte créé avec succès !",
     authSuccessSignIn: "Connecté avec succès !",
-    loggedInAs: "Connecté en tant que :"
+    loggedInAs: "Connecté en tant que :",
+    notFoundTitle: "404",
+    notFoundMessage: "Page non trouvée",
+    notFoundDesc: "La page que vous recherchez n'existe pas ou a été déplacée.",
+    backToHome: "Retour à l'accueil"
   }
 };

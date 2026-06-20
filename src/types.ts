@@ -20,7 +20,7 @@ export interface Mod {
   status?: 'approved' | 'pending' | 'rejected';
 }
 
-export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login';
+export type ActivePage = 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login' | 'not-found';
 
 export interface RouteState {
   page: ActivePage;
