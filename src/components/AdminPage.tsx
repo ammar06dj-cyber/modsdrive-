@@ -10,6 +10,7 @@ import { Mod } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
 import { HighlightText } from './HighlightText';
 import { sanitizeUrl } from '../utils/sanitizeUrl';
+import { matchesSearchCriteria } from '../utils/search';
 
 import { Language, translations } from '../translations';
 
@@ -221,51 +222,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { key: 'tractors', label: t.categoryTractors },
     { key: 'others', label: t.categoryOthers },
   ];
-
-  // Smart fuzzy and character-presence matching function for admin search
-  const matchesSearchCriteria = (name: string, query: string): boolean => {
-    const cleanQuery = query.toLowerCase().trim();
-    if (!cleanQuery) return true;
-
-    const targetName = name.toLowerCase();
-
-    const checkText = (text: string): boolean => {
-      // 1. Exact substring check (high accuracy direct matches)
-      if (text.includes(cleanQuery)) return true;
-
-      // 2. Individual words check (contains all words, in any order)
-      const words = cleanQuery.split(/\s+/).filter(Boolean);
-      if (words.length > 1) {
-        if (words.every(word => text.includes(word))) return true;
-      }
-
-      // 3. Sequential character presence check (characters are typed in order, e.g., 'm5' in 'BMW M5')
-      let queryIdx = 0;
-      for (let charIdx = 0; charIdx < text.length; charIdx++) {
-        if (text[charIdx] === cleanQuery[queryIdx]) {
-          queryIdx++;
-        }
-        if (queryIdx === cleanQuery.length) return true;
-      }
-
-      // 4. Complete letter presence check (all alphanumeric and Arabic characters typed in query must match letters in the text)
-      const queryLetters = cleanQuery.replace(/[^a-z0-9\u0600-\u06FF]/g, ''); // supports English and Arabic alphabet
-      if (queryLetters.length > 1) {
-        let isAllPresent = true;
-        for (let i = 0; i < queryLetters.length; i++) {
-          if (!text.includes(queryLetters[i])) {
-            isAllPresent = false;
-            break;
-          }
-        }
-        if (isAllPresent) return true;
-      }
-
-      return false;
-    };
-
-    return checkText(targetName);
-  };
 
   // Search & dynamic filtering logic
   const filteredMods = useMemo(() => {
