@@ -9,6 +9,7 @@ import { Mod } from '../types';
 import { Language, translations } from '../translations';
 import { HighlightText } from './HighlightText';
 import { sanitizeUrl } from '../utils/sanitizeUrl';
+import { normalizeGameVersion } from '../utils/version';
 
 interface ModCardProps {
   mod: Mod;

@@ -10,6 +10,7 @@ import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 import { matchesSearchCriteria } from '../utils/search';
 import { ModsDriveError } from '../supabaseClient';
+import { normalizeGameVersion } from '../utils/version';
 
 const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
@@ -188,27 +189,25 @@ export const HomePage: React.FC<HomePageProps> = ({
     // Always include the current mods' versions
     mods.forEach(mod => {
       if (mod.game_version) {
-        const trimmed = mod.game_version.trim();
-        if (trimmed) {
-          versionsSet.add(trimmed);
+        const normalized = normalizeGameVersion(mod.game_version);
+        if (normalized) {
+          versionsSet.add(normalized);
         }
       }
     });
 
-    // If empty, fall back to default version numbers to avoid empty display
-    if (versionsSet.size === 0) {
-      const defaultVersions = [
-        'v0.38', 'v0.37', 'v0.36', 'v0.35', 'v0.34',
-        'v0.33', 'v0.32', 'v0.31', 'v0.30', 'v0.29',
-        'v0.28', 'v0.27', 'v0.26', 'v0.25', 'v0.24'
-      ];
-      defaultVersions.forEach(v => versionsSet.add(v));
-    }
+    // We must ensure the default range requested is present: 0.24.x to 0.38.x
+    const defaultVersions = [
+      '0.38.x', '0.37.x', '0.36.x', '0.35.x', '0.34.x',
+      '0.33.x', '0.32.x', '0.31.x', '0.30.x', '0.29.x',
+      '0.28.x', '0.27.x', '0.26.x', '0.25.x', '0.24.x'
+    ];
+    defaultVersions.forEach(v => versionsSet.add(v));
 
-    // Sort versions in descending order order (higher versions first)
+    // Sort versions in descending order (higher versions first)
     return Array.from(versionsSet).sort((a, b) => {
-      const cleanA = a.replace(/^[vV]/, '');
-      const cleanB = b.replace(/^[vV]/, '');
+      const cleanA = a.replace(/^[vV]/, '').replace(/\.x$/, '');
+      const cleanB = b.replace(/^[vV]/, '').replace(/\.x$/, '');
       const numA = parseFloat(cleanA);
       const numB = parseFloat(cleanB);
       if (!isNaN(numA) && !isNaN(numB)) {
@@ -281,8 +280,17 @@ export const HomePage: React.FC<HomePageProps> = ({
     
     mods.forEach(mod => {
       dynamicGameVersions.forEach(v => {
-        const matchesDirect = mod.game_version && mod.game_version.trim().toLowerCase() === v.trim().toLowerCase();
-        const hasExplicit = matchesDirect || mod.description.toLowerCase().includes(v.toLowerCase()) || mod.name.toLowerCase().includes(v.toLowerCase());
+        const modNormalized = mod.game_version ? normalizeGameVersion(mod.game_version) : '';
+        const matchesDirect = modNormalized && modNormalized.toLowerCase() === v.toLowerCase();
+        
+        const rawVerNoX = v.replace(/\.x$/, '');
+        const hasExplicit = matchesDirect || 
+                            mod.description.toLowerCase().includes(v.toLowerCase()) || 
+                            mod.name.toLowerCase().includes(v.toLowerCase()) ||
+                            mod.description.toLowerCase().includes(rawVerNoX.toLowerCase()) ||
+                            mod.name.toLowerCase().includes(rawVerNoX.toLowerCase()) ||
+                            mod.description.toLowerCase().includes('v' + rawVerNoX.toLowerCase()) ||
+                            mod.name.toLowerCase().includes('v' + rawVerNoX.toLowerCase());
         
         if (hasExplicit) {
           counts[v]++;
@@ -309,10 +317,17 @@ export const HomePage: React.FC<HomePageProps> = ({
       
       let matchesVersion = true;
       if (selectedVersion !== 'all') {
+        const modNormalized = mod.game_version ? normalizeGameVersion(mod.game_version) : '';
         if (mod.game_version) {
-          matchesVersion = (mod.game_version.trim().toLowerCase() === selectedVersion.toLowerCase());
+          matchesVersion = (modNormalized.toLowerCase() === selectedVersion.toLowerCase());
         } else {
-          const hasExplicit = mod.description.toLowerCase().includes(selectedVersion.toLowerCase()) || mod.name.toLowerCase().includes(selectedVersion.toLowerCase());
+          const rawVerNoX = selectedVersion.replace(/\.x$/, '');
+          const hasExplicit = mod.description.toLowerCase().includes(selectedVersion.toLowerCase()) || 
+                              mod.name.toLowerCase().includes(selectedVersion.toLowerCase()) ||
+                              mod.description.toLowerCase().includes(rawVerNoX.toLowerCase()) || 
+                              mod.name.toLowerCase().includes(rawVerNoX.toLowerCase()) ||
+                              mod.description.toLowerCase().includes('v' + rawVerNoX.toLowerCase()) || 
+                              mod.name.toLowerCase().includes('v' + rawVerNoX.toLowerCase());
           if (hasExplicit) {
             matchesVersion = true;
           } else {

@@ -19,8 +19,10 @@ import { getMods, createMod, deleteMod, IS_DEMO_MODE, ModsDriveError } from './s
 import { Mod, RouteState, ActivePage } from './types';
 import { Hammer, Github, ShieldAlert, Cpu } from 'lucide-react';
 import { Language, translations } from './translations';
+import { useTheme } from './hooks/useTheme';
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme();
   const [mods, setMods] = useState<Mod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ModsDriveError | null>(null);
@@ -253,6 +255,8 @@ export default function App() {
         showMobileFilterButton={route.page === 'home'}
         lang={lang}
         onLanguageChange={handleLanguageChange}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Workspace Frame */}

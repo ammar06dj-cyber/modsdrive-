@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Gauge, Car, Bus, ShieldAlert, Wifi, Database, MoreVertical, Globe, ChevronDown } from 'lucide-react';
+import { Gauge, Car, Bus, ShieldAlert, Wifi, Database, MoreVertical, Globe, ChevronDown, Sun, Moon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ActivePage } from '../types';
 import { IS_DEMO_MODE } from '../supabaseClient';
@@ -17,6 +17,8 @@ interface HeaderProps {
   showMobileFilterButton?: boolean;
   lang?: Language;
   onLanguageChange?: (lang: Language) => void;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -25,7 +27,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMobileFilter, 
   showMobileFilterButton,
   lang = 'ar',
-  onLanguageChange
+  onLanguageChange,
+  theme = 'dark',
+  onToggleTheme
 }) => {
   const t = translations[lang];
   const [isLangOpen, setIsLangOpen] = useState(false);
@@ -139,6 +143,21 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <span>{t.exploreFleet}</span>
+          </button>
+
+          {/* Theme Toggle Button */}
+          <button
+            id="theme-toggle"
+            onClick={onToggleTheme}
+            className="flex items-center justify-center p-1.5 bg-[#121216]/95 hover:bg-[#16161D] border border-white/10 hover:border-brand-cyan/40 rounded-lg text-slate-200 hover:text-white transition-all duration-200 cursor-pointer shadow-sm select-none active:scale-95"
+            title={t.toggleTheme}
+            aria-label={t.toggleTheme}
+          >
+            {theme === 'light' ? (
+              <Sun className="w-3.5 h-3.5 text-brand-cyan" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-brand-cyan" />
+            )}
           </button>
 
           {/* Languages Selector Dropdown */}

@@ -1,16 +1,63 @@
 @import "tailwindcss";
 
+:root {
+  --color-bg: #0A0A0B;
+  --color-section: #0D0D10;
+  --color-header: #0F0F12;
+  --color-card: #16161D;
+  --color-text-primary: #FFFFFF;      /* White for dark */
+  --color-text-secondary: #A1A1AA;    /* Gray for dark */
+  --color-text-muted: #71717A;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-brand: #FF5C00;
+
+  --color-dark-bg: var(--color-bg);
+  --color-dark-section: var(--color-section);
+  --color-dark-header: var(--color-header);
+  --color-dark-card: var(--color-card);
+  --color-dark-input: #1A1A1F;
+}
+
+:root.light {
+  --color-bg: #F5F5F7;
+  --color-section: #FFFFFF;
+  --color-header: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-text-primary: #000000;      /* PURE BLACK */
+  --color-text-secondary: #111111;    /* VERY DARK, not gray */
+  --color-text-muted: #333333;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-brand: #FF5C00;
+
+  --color-dark-bg: var(--color-bg);
+  --color-dark-section: var(--color-section);
+  --color-dark-header: var(--color-header);
+  --color-dark-card: var(--color-card);
+  --color-dark-input: #FFFFFF;
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
   --color-brand-cyan: #FF5C00;
   --color-brand-orange: #FF5C00;
-  --color-dark-bg: #0A0A0B;
-  --color-dark-section: #0D0D10;
-  --color-dark-header: #0F0F12;
-  --color-dark-card: #16161D;
-  --color-dark-input: #1A1A1F;
+  --color-dark-bg: var(--color-dark-bg);
+  --color-dark-section: var(--color-dark-section);
+  --color-dark-header: var(--color-dark-header);
+  --color-dark-card: var(--color-dark-card);
+  --color-dark-input: var(--color-dark-input);
+  
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-border: var(--color-border);
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  background-color: var(--color-dark-bg);
+  color: var(--color-text-primary);
 }
 
 @keyframes fadeIn {
@@ -91,6 +138,53 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) rgba(0, 0, 0, 0.2);
+}
+
+/* Light Mode Overrides */
+.light {
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+  }
+
+  .text-white, .text-slate-100, .text-slate-200, .text-gray-100, .text-gray-200, .text-zinc-100, .text-neutral-100 {
+    color: var(--color-text-primary) !important;
+  }
+
+  .text-slate-300, .text-slate-400, .text-gray-300, .text-gray-400, .text-zinc-300, .text-zinc-400, .text-neutral-300, .text-neutral-400 {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .text-gray-500, .text-slate-500, .text-zinc-500, .text-neutral-500, .text-gray-650, .text-gray-600, .text-slate-600 {
+    color: var(--color-text-muted) !important;
+  }
+
+  /* Borders override */
+  .border-white\/5, .border-white\/10, .border-white\/20, .border-slate-800, .border-white\/40, .border-white\/15, .border-slate-700, .border-zinc-800, .border-white\/50, .border-white\/30, .border-zinc-900 {
+    border-color: var(--color-border) !important;
+  }
+
+  /* Hardcoded dark cards & components */
+  .bg-\[\#16161D\], .bg-\[\#121216\]\/95, .bg-dark-card, .bg-dark-header, .bg-dark-section, .bg-dark-input, .bg-slate-900, .bg-slate-950, .bg-slate-850, .bg-slate-900\/50, .bg-slate-950\/50, .bg-black\/40 {
+    background-color: var(--color-card) !important;
+  }
+
+  /* Standard dynamic translucent blocks in light mode */
+  .bg-white\/5, .bg-white\/10, .bg-white\/20 {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Form controls and inputs standardizing */
+  input, select, textarea {
+    background-color: var(--color-dark-input) !important;
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-border) !important;
+  }
+
+  /* Soft shadows in light mode for modern distinction */
+  .shadow-xl, .shadow-2xl, .shadow-md {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+  }
 }
 
 

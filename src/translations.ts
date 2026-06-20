@@ -99,7 +99,10 @@ export const translations = {
     errorNetwork: "فشل الاتصال. تحقق من الإنترنت.",
     errorDatabase: "خطأ في قاعدة البيانات. يرجى المحاولة لاحقاً.",
     errorNotFound: "العنصر غير موجود.",
-    retryButton: "إعادة المحاولة"
+    retryButton: "إعادة المحاولة",
+    toggleTheme: "تبديل الوضع",
+    themeDark: "داكن",
+    themeLight: "فاتح"
   },
   en: {
     subtitle: "Simulator Drive Hub",
@@ -194,7 +197,10 @@ export const translations = {
     errorNetwork: "Connection failed. Please check your internet.",
     errorDatabase: "Database error. Please try again later.",
     errorNotFound: "Item not found.",
-    retryButton: "Try Again"
+    retryButton: "Try Again",
+    toggleTheme: "Toggle theme",
+    themeDark: "Dark",
+    themeLight: "Light"
   },
   fr: {
     subtitle: "Centre d'activités de simulation",
@@ -289,6 +295,9 @@ export const translations = {
     errorNetwork: "Connexion échouée. Veuillez vérifier votre connexion internet.",
     errorDatabase: "Erreur de base de données. Veuillez réessayer plus tard.",
     errorNotFound: "Élément non trouvé.",
-    retryButton: "Réessayer"
+    retryButton: "Réessayer",
+    toggleTheme: "Changer le thème",
+    themeDark: "Sombre",
+    themeLight: "Clair"
   }
 };
