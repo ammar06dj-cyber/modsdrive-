@@ -9,6 +9,8 @@ import { Mod } from '../types';
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 
+const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
+
 interface HomePageProps {
   mods: Mod[];
   isLoading: boolean;
@@ -111,13 +113,15 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Dynamic statistics
   const stats = useMemo(() => {
-    console.log('[DEBUG] HomePage: Raw mods data received from Supabase:', {
-      count: mods.length,
-      itemIds: mods.map(m => m.id),
-      categories: mods.map(m => m.category),
-      versions: mods.map(m => m.game_version),
-      rawItems: mods
-    });
+    if (IS_DEV) {
+      console.log('[DEBUG] HomePage: Raw mods data received from Supabase:', {
+        count: mods.length,
+        itemIds: mods.map(m => m.id),
+        categories: mods.map(m => m.category),
+        versions: mods.map(m => m.game_version),
+        rawItems: mods
+      });
+    }
 
     const counts = {
       total: mods.length,

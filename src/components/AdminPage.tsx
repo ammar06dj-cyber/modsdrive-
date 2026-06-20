@@ -12,6 +12,8 @@ import { HighlightText } from './HighlightText';
 
 import { Language, translations } from '../translations';
 
+const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
+
 interface AdminPageProps {
   mods: Mod[];
   onAddMod: (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_count'>) => Promise<boolean>;
@@ -202,10 +204,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const handleCreateModSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('AdminPage: Form submission triggered');
+    if (IS_DEV) {
+      console.log('AdminPage: Form submission triggered');
+    }
 
     if (!modName || !description || !imageUrl || !downloadUrl || !gameVersion) {
-      console.warn('AdminPage: Validation failed - missing fields');
+      if (IS_DEV) {
+        console.warn('AdminPage: Validation failed - missing fields');
+      }
       triggerToast("Please fill in all requested fields", "info");
       return;
     }
@@ -223,17 +229,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       .map(url => url.trim())
       .filter(url => url.length > 0);
 
-    console.log('AdminPage: Submitting data payload...', {
-      name: modName,
-      description,
-      category,
-      image_url: imageUrl,
-      download_url: downloadUrl,
-      game_version: gameVersion,
-      mod_version: modVersion || undefined,
-      gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : undefined,
-      file_size: fileSize || undefined,
-    });
+    if (IS_DEV) {
+      console.log('AdminPage: Submitting data payload...', {
+        name: modName,
+        description,
+        category,
+        image_url: imageUrl,
+        download_url: downloadUrl,
+        game_version: gameVersion,
+        mod_version: modVersion || undefined,
+        gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : undefined,
+        file_size: fileSize || undefined,
+      });
+    }
 
     setIsSubmitting(true);
     try {
@@ -250,7 +258,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       });
 
       if (success) {
-        console.log('AdminPage: Mod saved successfully!');
+        if (IS_DEV) {
+          console.log('AdminPage: Mod saved successfully!');
+        }
         // Reset form inputs
         setModName('');
         setDescription('');
@@ -262,11 +272,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         setGalleryUrls(['']);
         triggerToast("Modification record created and saved standard in DB!", "success");
       } else {
-        console.warn('AdminPage: Add mod returned unsuccessful');
+        if (IS_DEV) {
+          console.warn('AdminPage: Add mod returned unsuccessful');
+        }
         triggerToast("Failed to create the record", "info");
       }
     } catch (err: any) {
-      console.error("AdminPage: Error caught during handleCreateModSubmit:", err);
+      if (IS_DEV) {
+        console.error("AdminPage: Error caught during handleCreateModSubmit:", err);
+      }
       const errMsg = err?.message || err?.details || JSON.stringify(err) || "Unknown database error";
       triggerToast(`Error saving to DB: ${errMsg}`, "info");
     } finally {

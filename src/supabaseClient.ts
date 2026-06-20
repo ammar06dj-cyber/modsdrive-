@@ -25,18 +25,20 @@ const getCleanUrl = (url: string): string => {
   return clean;
 };
 
-// Check environment variables first, falling back to original constants
+// Check environment variables first, falling back to empty string
 export const SUPABASE_URL = (
   ((import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_URL) || 
-  'https://qqamwmjtbsnbjtxlpriv.supabase.co/rest/v1/'
+  ''
 ).trim();
 
 export const SUPABASE_KEY = (
   ((import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_ANON_KEY) || 
-  'sb_publishable_gpAiNrSnz0oeIG2iK9D1Mg_1SvxBzko'
+  ''
 ).trim();
 
 const cleanSupabaseUrl = getCleanUrl(SUPABASE_URL);
+
+const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
 // Check if credentials are placeholders
 const isPlaceholder = (url: string, key: string) => {
@@ -45,12 +47,14 @@ const isPlaceholder = (url: string, key: string) => {
 
 export const IS_DEMO_MODE = isPlaceholder(SUPABASE_URL, SUPABASE_KEY);
 
-console.log('Supabase configuration:', {
-  originalUrl: SUPABASE_URL,
-  cleanUrl: cleanSupabaseUrl,
-  isDemoMode: IS_DEMO_MODE,
-  keyLength: SUPABASE_KEY ? SUPABASE_KEY.length : 0
-});
+if (IS_DEV) {
+  console.log('Supabase configuration:', {
+    originalUrl: SUPABASE_URL,
+    cleanUrl: cleanSupabaseUrl,
+    isDemoMode: IS_DEMO_MODE,
+    keyLength: SUPABASE_KEY ? SUPABASE_KEY.length : 0
+  });
+}
 
 export const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
 
@@ -300,6 +304,7 @@ export const getMods = async (): Promise<Mod[]> => {
       const { data, error } = await supabaseClient!
         .from('mods')
         .select('*')
+        .or('status.eq.approved,status.is.null')
         .order('created_at', { ascending: false });
       if (error) {
         throw error;
@@ -307,7 +312,9 @@ export const getMods = async (): Promise<Mod[]> => {
       const fetchedMods = data || [];
       return fetchedMods.filter(isApproved);
     } catch (err) {
-      console.warn('Failed to fetch from Supabase, falling back to Local Storage:', err);
+      if (IS_DEV) {
+        console.warn('Failed to fetch from Supabase, falling back to Local Storage:', err);
+      }
       const mods = getLocalStorageMods();
       return mods.filter(isApproved);
     }
@@ -330,7 +337,9 @@ export const getModById = async (id: number): Promise<Mod | null> => {
       }
       return data;
     } catch (err) {
-      console.warn('Failed to fetch detail from Supabase, falling back to Local Storage:', err);
+      if (IS_DEV) {
+        console.warn('Failed to fetch detail from Supabase, falling back to Local Storage:', err);
+      }
       const mods = getLocalStorageMods();
       return mods.find(m => m.id === id) || null;
     }
@@ -374,7 +383,9 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
       insertPayload.file_size = mod.file_size;
     }
 
-    console.log('Supabase: executing INSERT query on table "mods" with payload:', insertPayload);
+    if (IS_DEV) {
+      console.log('Supabase: executing INSERT query on table "mods" with payload:', insertPayload);
+    }
 
     try {
       if (!supabaseClient) {
@@ -388,14 +399,20 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
         .single();
       
       if (error) {
-        console.error('Supabase: Query returned error:', error);
+        if (IS_DEV) {
+          console.error('Supabase: Query returned error:', error);
+        }
         throw error;
       }
       
-      console.log('Supabase: INSERT query succeeded. Saved mod:', data);
+      if (IS_DEV) {
+        console.log('Supabase: INSERT query succeeded. Saved mod:', data);
+      }
       return data;
     } catch (err: any) {
-      console.error('Supabase: Exception occurred during insert operation:', err);
+      if (IS_DEV) {
+        console.error('Supabase: Exception occurred during insert operation:', err);
+      }
       // Rethrow to bubble up to the UI so the user gets notified exactly why the DB rejected the request
       throw err;
     }
@@ -419,7 +436,9 @@ export const deleteMod = async (id: number): Promise<boolean> => {
       }
       return true;
     } catch (err) {
-      console.warn('Failed to delete from Supabase, removing from Local Storage:', err);
+      if (IS_DEV) {
+        console.warn('Failed to delete from Supabase, removing from Local Storage:', err);
+      }
       const mods = getLocalStorageMods();
       const filtered = mods.filter(m => m.id !== id);
       setLocalStorageMods(filtered);
@@ -464,7 +483,9 @@ export const incrementDownloadsCount = async (id: number): Promise<number> => {
       }
       return data?.downloads_count ?? nextCount;
     } catch (err) {
-      console.warn('Failed to update download count in Supabase, updating Local Storage:', err);
+      if (IS_DEV) {
+        console.warn('Failed to update download count in Supabase, updating Local Storage:', err);
+      }
       const mods = getLocalStorageMods();
       const index = mods.findIndex(m => m.id === id);
       if (index !== -1) {
