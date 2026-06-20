@@ -288,7 +288,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   }, [filteredMods, activePage]);
 
   // Handle password submission
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if currently locked out or delaying
@@ -304,73 +304,74 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       return;
     }
 
-    // @ts-ignore
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    if (!adminPassword) {
-      triggerToast("Admin access is not configured", "info");
-      return;
-    }
+    try {
+      const response = await fetch("/api/admin-auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      });
 
-    /* 
-     * IMPORTANT SECURITY NOTE:
-     * This rate-limiting is a client-side solution suitable for small-scale projects.
-     * In a production system with real designer accounts, real security, and protection 
-     * against programmatic bypass, this MUST be implemented on the backend/server rate limiter, 
-     * such as using Supabase Auth with dedicated admin roles or Cloudflare Workers rate limiting at the edge.
-     */
-    if (password === adminPassword) {
-      setIsAuthenticated(true);
-      moduleIsAuthenticated = true;
-      setFailedAttempts(0);
-      moduleFailedAttempts = 0;
-      setLockoutUntil(null);
-      moduleLockoutUntil = null;
-      setRemainingSeconds(0);
-      safeSessionStorage.setItem('admin_authenticated', 'true');
-      safeSessionStorage.removeItem('admin_failed_attempts');
-      safeSessionStorage.removeItem('admin_lockout_until');
-      triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
-    } else {
-      const currentStored = safeSessionStorage.getItem('admin_failed_attempts');
-      let parsed = currentStored ? parseInt(currentStored, 10) : 0;
-      if (isNaN(parsed)) parsed = 0;
-      const nextAttemptsCount = parsed + 1;
+      const data = await response.json();
 
-      setFailedAttempts(nextAttemptsCount);
-      moduleFailedAttempts = nextAttemptsCount;
-      safeSessionStorage.setItem('admin_failed_attempts', String(nextAttemptsCount));
+      if (response.ok && data.authenticated) {
+        setIsAuthenticated(true);
+        moduleIsAuthenticated = true;
+        setFailedAttempts(0);
+        moduleFailedAttempts = 0;
+        setLockoutUntil(null);
+        moduleLockoutUntil = null;
+        setRemainingSeconds(0);
+        safeSessionStorage.setItem('admin_authenticated', 'true');
+        safeSessionStorage.removeItem('admin_failed_attempts');
+        safeSessionStorage.removeItem('admin_lockout_until');
+        triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
+      } else {
+        const currentStored = safeSessionStorage.getItem('admin_failed_attempts');
+        let parsed = currentStored ? parseInt(currentStored, 10) : 0;
+        if (isNaN(parsed)) parsed = 0;
+        const nextAttemptsCount = parsed + 1;
 
-      const errorMsg = "Access Denied! Incorrect security code.";
+        setFailedAttempts(nextAttemptsCount);
+        moduleFailedAttempts = nextAttemptsCount;
+        safeSessionStorage.setItem('admin_failed_attempts', String(nextAttemptsCount));
 
-      if (nextAttemptsCount === 1) {
-        triggerToast(errorMsg, "info");
-      } else if (nextAttemptsCount === 2) {
-        triggerToast(errorMsg, "info");
-        const delayTime = Date.now() + 2000;
-        setLockoutUntil(delayTime);
-      } else if (nextAttemptsCount === 3) {
-        triggerToast(errorMsg, "info");
-        const delayTime = Date.now() + 4000;
-        setLockoutUntil(delayTime);
-      } else if (nextAttemptsCount === 4) {
-        triggerToast(errorMsg, "info");
-        const delayTime = Date.now() + 8000;
-        setLockoutUntil(delayTime);
-      } else if (nextAttemptsCount >= 5) {
-        const lockoutTime = Date.now() + 60000;
-        safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
-        moduleLockoutUntil = lockoutTime;
-        setLockoutUntil(lockoutTime);
+        const errorMsg = data.error || "Access Denied! Incorrect security code.";
 
-        triggerToast(
-          lang === 'ar'
-            ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد 60 ثانية.`
-            : lang === 'fr'
-            ? `Trop de tentatives échouées. Réessayez dans 60 secondes.`
-            : `Too many failed attempts. Try again in 60 seconds.`,
-          "info"
-        );
+        if (nextAttemptsCount === 1) {
+          triggerToast(errorMsg, "info");
+        } else if (nextAttemptsCount === 2) {
+          triggerToast(errorMsg, "info");
+          const delayTime = Date.now() + 2000;
+          setLockoutUntil(delayTime);
+        } else if (nextAttemptsCount === 3) {
+          triggerToast(errorMsg, "info");
+          const delayTime = Date.now() + 4000;
+          setLockoutUntil(delayTime);
+        } else if (nextAttemptsCount === 4) {
+          triggerToast(errorMsg, "info");
+          const delayTime = Date.now() + 8000;
+          setLockoutUntil(delayTime);
+        } else if (nextAttemptsCount >= 5) {
+          const lockoutTime = Date.now() + 60000;
+          safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
+          moduleLockoutUntil = lockoutTime;
+          setLockoutUntil(lockoutTime);
+
+          triggerToast(
+            lang === 'ar'
+              ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد 60 ثانية.`
+              : lang === 'fr'
+              ? `Trop de tentatives échouées. Réessayez dans 60 secondes.`
+              : `Too many failed attempts. Try again in 60 seconds.`,
+            "info"
+          );
+        }
       }
+    } catch (err: any) {
+      console.error("Auth request failed:", err);
+      triggerToast("Authentication system error. Please try again.", "info");
     }
   };
 
