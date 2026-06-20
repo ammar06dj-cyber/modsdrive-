@@ -92,7 +92,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         moduleLockoutUntil = parsed;
         return parsed;
       } else if (!isNaN(parsed) && parsed <= Date.now()) {
-        // lockout expired
+        // lockout has expired, so clean up both
         safeSessionStorage.setItem('admin_failed_attempts', '0');
         safeSessionStorage.removeItem('admin_lockout_until');
         moduleFailedAttempts = 0;
@@ -127,19 +127,38 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       return;
     }
 
-    setRemainingSeconds(Math.ceil((lockoutUntil - Date.now()) / 1000));
+    const initialDiff = lockoutUntil - Date.now();
+    if (initialDiff <= 0) {
+      setLockoutUntil(null);
+      setRemainingSeconds(0);
+      const currentAttempts = parseInt(safeSessionStorage.getItem('admin_failed_attempts') || '0', 10);
+      if (currentAttempts >= 5) {
+        setFailedAttempts(0);
+        moduleFailedAttempts = 0;
+        safeSessionStorage.setItem('admin_failed_attempts', '0');
+        safeSessionStorage.removeItem('admin_lockout_until');
+        moduleLockoutUntil = null;
+      }
+      return;
+    }
+
+    setRemainingSeconds(Math.ceil(initialDiff / 1000));
 
     const interval = setInterval(() => {
       const now = Date.now();
       const diff = lockoutUntil - now;
       if (diff <= 0) {
+        clearInterval(interval);
         setLockoutUntil(null);
         setRemainingSeconds(0);
-        setFailedAttempts(0);
-        moduleFailedAttempts = 0;
-        moduleLockoutUntil = null;
-        safeSessionStorage.setItem('admin_failed_attempts', '0');
-        safeSessionStorage.removeItem('admin_lockout_until');
+        const currentAttempts = parseInt(safeSessionStorage.getItem('admin_failed_attempts') || '0', 10);
+        if (currentAttempts >= 5) {
+          setFailedAttempts(0);
+          moduleFailedAttempts = 0;
+          safeSessionStorage.setItem('admin_failed_attempts', '0');
+          safeSessionStorage.removeItem('admin_lockout_until');
+          moduleLockoutUntil = null;
+        }
       } else {
         setRemainingSeconds(Math.ceil(diff / 1000));
       }
@@ -308,57 +327,49 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       moduleLockoutUntil = null;
       setRemainingSeconds(0);
       safeSessionStorage.setItem('admin_authenticated', 'true');
-      safeSessionStorage.setItem('admin_failed_attempts', '0');
+      safeSessionStorage.removeItem('admin_failed_attempts');
       safeSessionStorage.removeItem('admin_lockout_until');
       triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
     } else {
-      const nextAttemptsCount = failedAttempts + 1;
+      const currentStored = safeSessionStorage.getItem('admin_failed_attempts');
+      let parsed = currentStored ? parseInt(currentStored, 10) : 0;
+      if (isNaN(parsed)) parsed = 0;
+      const nextAttemptsCount = parsed + 1;
+
       setFailedAttempts(nextAttemptsCount);
       moduleFailedAttempts = nextAttemptsCount;
       safeSessionStorage.setItem('admin_failed_attempts', String(nextAttemptsCount));
 
-      // Calculate escalating delays based on count of attempts
-      let nextDelaySeconds = 0;
+      const errorMsg = "Access Denied! Incorrect security code.";
+
       if (nextAttemptsCount === 1) {
-        nextDelaySeconds = 0;
+        triggerToast(errorMsg, "info");
       } else if (nextAttemptsCount === 2) {
-        nextDelaySeconds = 2;
+        triggerToast(errorMsg, "info");
+        const delayTime = Date.now() + 2000;
+        setLockoutUntil(delayTime);
       } else if (nextAttemptsCount === 3) {
-        nextDelaySeconds = 4;
+        triggerToast(errorMsg, "info");
+        const delayTime = Date.now() + 4000;
+        setLockoutUntil(delayTime);
       } else if (nextAttemptsCount === 4) {
-        nextDelaySeconds = 8;
+        triggerToast(errorMsg, "info");
+        const delayTime = Date.now() + 8000;
+        setLockoutUntil(delayTime);
       } else if (nextAttemptsCount >= 5) {
-        nextDelaySeconds = 60;
-      }
-
-      if (nextDelaySeconds > 0) {
-        const lockoutTime = Date.now() + nextDelaySeconds * 1000;
-        setLockoutUntil(lockoutTime);
-        moduleLockoutUntil = lockoutTime;
-        setRemainingSeconds(nextDelaySeconds);
+        const lockoutTime = Date.now() + 60000;
         safeSessionStorage.setItem('admin_lockout_until', String(lockoutTime));
+        moduleLockoutUntil = lockoutTime;
+        setLockoutUntil(lockoutTime);
 
-        if (nextAttemptsCount >= 5) {
-          triggerToast(
-            lang === 'ar'
-              ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد ${nextDelaySeconds} ثانية.`
-              : lang === 'fr'
-              ? `Trop de tentatives échouées. Réessayez dans ${nextDelaySeconds} secondes.`
-              : `Too many failed attempts. Try again in ${nextDelaySeconds} seconds.`,
-            "info"
-          );
-        } else {
-          triggerToast(
-            lang === 'ar'
-              ? `رمز خاطئ. يرجى الانتظار ${nextDelaySeconds} ثانية.`
-              : lang === 'fr'
-              ? `Code incorrect. Veuillez patienter ${nextDelaySeconds} secondes.`
-              : `Incorrect pass code. Please wait ${nextDelaySeconds} seconds.`,
-            "info"
-          );
-        }
-      } else {
-        triggerToast("Access Denied! Incorrect security code.", "info");
+        triggerToast(
+          lang === 'ar'
+            ? `محاولات خاطئة كثيرة جداً. يرجى المحاولة بعد 60 ثانية.`
+            : lang === 'fr'
+            ? `Trop de tentatives échouées. Réessayez dans 60 secondes.`
+            : `Too many failed attempts. Try again in 60 seconds.`,
+          "info"
+        );
       }
     }
   };
