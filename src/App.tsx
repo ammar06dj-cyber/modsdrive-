@@ -30,7 +30,7 @@ export default function App() {
   // Multi-language state with localStorage persistence
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('lang');
-    return (saved === 'en' || saved === 'fr' || saved === 'ar') ? saved as Language : 'ar';
+    return (saved === 'en' || saved === 'fr' || saved === 'ar') ? saved as Language : 'en';
   });
 
   // Keep HTML document direction (RTL/LTR) in sync with active language
