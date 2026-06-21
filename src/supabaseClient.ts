@@ -76,7 +76,7 @@ if (IS_DEV) {
 export const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
 
 // Premium initial seed mods for the demo mode
-const SEED_MODS: Mod[] = [
+export const SEED_MODS: Mod[] = [
   {
     id: 1,
     name: "Toyota Supra MK4 Turbo 1994",

@@ -10,6 +10,8 @@
   --color-text-muted: #71717A;
   --color-border: rgba(255, 255, 255, 0.1);
   --color-brand: #FF5C00;
+  --color-dropdown-bg: #1A1A1A;
+  --color-dropdown-text: #FFFFFF;
 
   --color-dark-bg: var(--color-bg);
   --color-dark-section: var(--color-section);
@@ -28,6 +30,8 @@
   --color-text-muted: #333333;
   --color-border: rgba(0, 0, 0, 0.1);
   --color-brand: #FF5C00;
+  --color-dropdown-bg: #FFFFFF;
+  --color-dropdown-text: #000000;
 
   --color-dark-bg: var(--color-bg);
   --color-dark-section: var(--color-section);
@@ -52,6 +56,8 @@
   --color-text-secondary: var(--color-text-secondary);
   --color-text-muted: var(--color-text-muted);
   --color-border: var(--color-border);
+  --color-dropdown-bg: var(--color-dropdown-bg);
+  --color-dropdown-text: var(--color-dropdown-text);
 }
 
 body {

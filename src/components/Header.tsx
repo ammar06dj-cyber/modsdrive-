@@ -178,7 +178,12 @@ export const Header: React.FC<HeaderProps> = ({
               <div 
                 className={`absolute ${
                   lang === 'ar' ? 'left-0' : 'right-0'
-                } mt-2 w-36 rounded-lg bg-[#121216] border border-white/10 shadow-2xl overflow-hidden py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150`}
+                } mt-2 w-36 rounded-lg bg-[var(--color-dropdown-bg)] text-[var(--color-dropdown-text)] border border-[var(--color-border)] shadow-2xl overflow-hidden py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150`}
+                style={{
+                  backgroundColor: 'var(--color-dropdown-bg)',
+                  color: 'var(--color-dropdown-text)',
+                  borderColor: 'var(--color-border)'
+                }}
               >
                 {languages.map((l) => (
                   <button
@@ -190,9 +195,12 @@ export const Header: React.FC<HeaderProps> = ({
                     className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-all duration-150 cursor-pointer select-none ${
                       lang === l.code
                         ? 'bg-brand-cyan/15 text-brand-cyan font-extrabold shadow-inner'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        : 'text-[var(--color-dropdown-text)]/80 hover:bg-white/5 hover:text-[var(--color-dropdown-text)]'
                     }`}
-                    style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}
+                    style={{ 
+                      direction: lang === 'ar' ? 'rtl' : 'ltr',
+                      color: lang === l.code ? undefined : 'var(--color-dropdown-text)'
+                    }}
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-sm">{l.flag}</span>
