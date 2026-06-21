@@ -11,6 +11,7 @@ import { getModById, incrementDownloadsCount, getMods, ModsDriveError } from '..
 import { ModCard } from './ModCard';
 import { Language, translations } from '../translations';
 import { sanitizeUrl } from '../utils/sanitizeUrl';
+import { useTheme } from '../hooks/useTheme';
 
 interface ModDetailPageProps {
   modId: number;
@@ -27,6 +28,8 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
   triggerToast,
   lang = 'ar',
 }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const t = translations[lang];
   const [mod, setMod] = useState<Mod | null>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -410,7 +413,11 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                     e.stopPropagation();
                     handlePrevImage();
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm"
+                  className={`absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm hover:scale-110 active:scale-95 ${
+                    isLight 
+                      ? 'bg-white/70 border-black/10 text-black hover:bg-brand-orange hover:text-white' 
+                      : 'bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black'
+                  }`}
                   title={lang === 'ar' ? 'الصورة السابقة' : 'Previous Image'}
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -421,14 +428,22 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                     e.stopPropagation();
                     handleNextImage();
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm"
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full border transition-all duration-300 cursor-pointer shadow-lg backdrop-blur-sm hover:scale-110 active:scale-95 ${
+                    isLight 
+                      ? 'bg-white/70 border-black/10 text-black hover:bg-brand-orange hover:text-white' 
+                      : 'bg-black/60 border border-white/10 text-white hover:bg-brand-cyan hover:text-black'
+                  }`}
                   title={lang === 'ar' ? 'الصورة التالية' : 'Next Image'}
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
                 
                 {/* Numeric Indicator */}
-                <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded bg-black/75 border border-white/10 text-slate-300 font-mono text-[10px] uppercase tracking-wider select-none pointer-events-none">
+                <div className={`absolute top-3 right-3 z-20 px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-wider select-none pointer-events-none transition-colors duration-300 border ${
+                  isLight 
+                    ? 'bg-white/70 border-black/10 text-black' 
+                    : 'bg-black/75 border border-white/10 text-slate-300'
+                }`}>
                   {[mod.image_url, ...mod.gallery_urls].indexOf(activeImage) + 1} / {[mod.image_url, ...mod.gallery_urls].length}
                 </div>
               </>
@@ -437,7 +452,11 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
 
           {/* Sub-images Gallery Row */}
           {mod.gallery_urls && mod.gallery_urls.length > 0 && (
-            <div className="space-y-2.5 bg-black/35 p-3 rounded-xl border border-white/5">
+            <div className={`space-y-2.5 p-3 rounded-xl border transition-colors duration-300 ${
+              isLight 
+                ? 'bg-white/80 border-black/10' 
+                : 'bg-black/35 border-white/5'
+            }`}>
               <span className="text-[10px] text-brand-orange font-bold uppercase tracking-wider block">
                 {lang === 'ar' ? 'معرض لقطات المود' : lang === 'fr' ? 'Galerie de captures d\'écran' : 'Screenshots Gallery'}
               </span>
@@ -453,7 +472,9 @@ export const ModDetailPage: React.FC<ModDetailPageProps> = ({
                       className={`relative w-24 sm:w-28 aspect-video rounded-md overflow-hidden border transition-all duration-300 shrink-0 ${
                         isActive 
                            ? 'border-brand-orange shadow-[0_0_12px_rgba(255,92,0,0.35)] scale-95' 
-                           : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
+                           : isLight 
+                             ? 'border-black/10 opacity-70 hover:opacity-100 hover:border-black/30' 
+                             : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
                       }`}
                     >
                       <img 
