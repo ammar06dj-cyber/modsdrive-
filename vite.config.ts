@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import fs from 'fs';
 
 // Auth API plugin - handles /api/admin-auth without separate server
 const authApiPlugin = () => ({
@@ -85,6 +86,25 @@ ${urls.map(u => `  <url><loc>${u.loc}</loc><priority>${u.priority}</priority></u
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ error: 'Server error generating sitemap' }));
+        }
+      } else {
+        next();
+      }
+    });
+
+    // Dedicated /sitemap.xml endpoint serving from public/sitemap.xml
+    server.middlewares.use('/sitemap.xml', (req, res, next) => {
+      if (req.method === 'GET') {
+        const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+        
+        if (fs.existsSync(sitemapPath)) {
+          const xml = fs.readFileSync(sitemapPath, 'utf8');
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/xml');
+          res.end(xml);
+        } else {
+          res.statusCode = 404;
+          res.end('Not found');
         }
       } else {
         next();
