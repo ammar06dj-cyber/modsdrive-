@@ -68,13 +68,37 @@ async function startServer() {
   // Cloud Run ingress / reverse proxy trust setting
   app.set("trust proxy", 1);
 
+  // 1. Un-redirected and un-rate-limited health check endpoints prior to any routing / redirects
+  app.get(["/healthz", "/api/health"], (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // HTTPS enforcement middleware in production
   if (process.env.NODE_ENV === "production" || process.env.HTTPS_REDIRECT === "true") {
     app.use((req, res, next) => {
+      const userAgent = req.headers["user-agent"] || "";
+      const host = req.headers.host || "";
+
+      // Bypass HTTPS redirect for:
+      // - Google Health Checker (Cloud Run startup/warmup/health probes)
+      // - Kubernetes / container probes
+      // - Direct local host probes (e.g. localhost, loopback, or private range ip)
+      if (
+        userAgent.includes("GoogleHC") ||
+        userAgent.includes("kube-probe") ||
+        host.includes("localhost") ||
+        host.includes("127.0.0.1") ||
+        host.startsWith("10.") ||
+        host.startsWith("172.") ||
+        host.startsWith("192.168.")
+      ) {
+        return next();
+      }
+
       // Check trust proxy req.secure status or X-Forwarded-Proto header
       const isHttps = req.secure || req.headers["x-forwarded-proto"] === "https";
       if (!isHttps) {
-        const secureUrl = `https://${req.headers.host}${req.url}`;
+        const secureUrl = `https://${host}${req.url}`;
         logger.info({ url: req.url, secureUrl }, "Redirecting non-HTTPS request to secure HTTPS endpoint");
         return res.redirect(301, secureUrl);
       }
