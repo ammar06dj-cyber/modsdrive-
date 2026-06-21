@@ -3,6 +3,15 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
+
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
 
 // Auth API plugin - handles /api/admin-auth without separate server
 const authApiPlugin = () => ({
@@ -18,13 +27,41 @@ const authApiPlugin = () => ({
       }
       
       let body = '';
-      req.on('data', chunk => body += chunk);
+      let isOverLimit = false;
+
+      const contentLength = parseInt(req.headers['content-length'] || '', 10);
+      if (!isNaN(contentLength) && contentLength > 2048) {
+        res.statusCode = 413;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Payload Too Large' }));
+        return;
+      }
+
+      req.on('data', chunk => {
+        if (isOverLimit) return;
+        body += chunk;
+        if (body.length > 2048) {
+          isOverLimit = true;
+          res.statusCode = 413;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Payload Too Large' }));
+          req.destroy();
+        }
+      });
+
       req.on('end', () => {
+        if (isOverLimit) return;
+
         try {
+          const adminPassword = process.env.ADMIN_PASSWORD;
+          if (!adminPassword) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Server misconfiguration: admin authentication is not configured.' }));
+            return;
+          }
+
           const { password } = JSON.parse(body);
-          // Read password from env (compatible with both direct and VITE_ prefixed versions)
-          const adminPassword = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || 'admin123';
-          
           if (!password) {
             res.statusCode = 400;
             res.setHeader('Content-Type', 'application/json');
@@ -32,7 +69,7 @@ const authApiPlugin = () => ({
             return;
           }
           
-          if (password === adminPassword) {
+          if (safeCompare(password, adminPassword)) {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ authenticated: true }));
@@ -42,9 +79,9 @@ const authApiPlugin = () => ({
             res.end(JSON.stringify({ authenticated: false, error: 'Invalid credentials' }));
           }
         } catch (e) {
-          res.statusCode = 500;
+          res.statusCode = 400;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Server error' }));
+          res.end(JSON.stringify({ error: 'Invalid request payload' }));
         }
       });
     });

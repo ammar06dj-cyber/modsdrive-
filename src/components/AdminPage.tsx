@@ -304,6 +304,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         moduleLockoutUntil = null;
         setRemainingSeconds(0);
         safeSessionStorage.setItem('admin_authenticated', 'true');
+        if (data.token) {
+          safeSessionStorage.setItem('admin_token', data.token);
+        }
         safeSessionStorage.removeItem('admin_failed_attempts');
         safeSessionStorage.removeItem('admin_lockout_until');
         triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
@@ -350,7 +353,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         }
       }
     } catch (err: any) {
-      console.error("Auth request failed:", err);
+      if (IS_DEV) {
+        console.error("Auth request failed in administration deck:", err?.message || err);
+      }
       triggerToast("Authentication system error. Please try again.", "info");
     }
   };
@@ -413,16 +418,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       .filter(url => url.length > 0);
 
     if (IS_DEV) {
-      console.log('AdminPage: Submitting data payload...', {
+      console.log('AdminPage: Submitting data payload for:', {
         name: modName,
-        description,
         category,
-        image_url: imageUrl,
-        download_url: downloadUrl,
         game_version: gameVersion,
-        mod_version: modVersion || undefined,
-        gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : undefined,
-        file_size: fileSize || undefined,
       });
     }
 
@@ -465,7 +464,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         console.error("AdminPage: Error caught during handleCreateModSubmit:", err);
       }
       const errMsg = err?.message || err?.details || JSON.stringify(err) || "Unknown database error";
-      triggerToast(`Error saving to DB: ${errMsg}`, "info");
+      const isUnauth = errMsg.toLowerCase().includes("unauthorized") || errMsg.toLowerCase().includes("expired");
+      
+      if (isUnauth) {
+        triggerToast("Session expired or unauthorized. Logging out...", "info");
+        setTimeout(() => handleLogout(), 1500);
+      } else {
+        triggerToast("Failed to save mod. Please check the fields and try again.", "info");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -483,8 +489,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         triggerToast("Failed to delete the mod", "info");
       }
     } catch (err: any) {
+      if (IS_DEV) {
+        console.error("AdminPage: Error caught during handleDeleteConfirm:", err);
+      }
       const errMsg = err?.message || err?.details || JSON.stringify(err) || "Unknown database error";
-      triggerToast(`Deletion error: ${errMsg}`, "info");
+      const isUnauth = errMsg.toLowerCase().includes("unauthorized") || errMsg.toLowerCase().includes("expired");
+
+      if (isUnauth) {
+        triggerToast("Session expired or unauthorized. Logging out...", "info");
+        setTimeout(() => handleLogout(), 1500);
+      } else {
+        triggerToast("Deletion failed. Please try again.", "info");
+      }
     }
   };
 
@@ -492,6 +508,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setIsAuthenticated(false);
     moduleIsAuthenticated = false;
     safeSessionStorage.removeItem('admin_authenticated');
+    safeSessionStorage.removeItem('admin_token');
+    fetch('/api/admin-logout', { method: 'POST' }).catch(() => {});
     setPassword('');
     triggerToast("Logged out successfully.", "info");
   };
@@ -991,7 +1009,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       {/* Tiny visual card preview */}
                       <div className="relative shrink-0 mt-0.5 group-hover/clickable:scale-105 transition-transform duration-300">
                         <img 
-                          src={mod.image_url} 
+                          src={sanitizeUrl(mod.image_url) || 'https://images.unsplash.com/photo-1617469767053-d3b508a0d822?auto=format&fit=crop&q=80&w=800'} 
                           alt="" 
                           className="w-16 h-12 rounded object-cover bg-slate-950 border border-white/10"
                           onError={(e) => {
@@ -1034,7 +1052,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           <span>Downloads: <strong className="text-brand-cyan">{mod.downloads_count.toLocaleString()}</strong></span>
                           <span>UID: <code className="text-gray-400">#{mod.id}</code></span>
                           <a 
-                            href={mod.download_url} 
+                            href={sanitizeUrl(mod.download_url) || '#'} 
                             onClick={(e) => {
                               e.preventDefault();
                               const sanitized = sanitizeUrl(mod.download_url);

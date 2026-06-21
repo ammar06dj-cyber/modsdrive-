@@ -336,15 +336,22 @@ export const getMods = async (): Promise<Mod[]> => {
 };
 
 export const getModById = async (id: number): Promise<Mod | null> => {
+  const isApproved = (m: Mod) => m.status === 'approved' || m.status === undefined || m.status === null;
+
   if (IS_DEMO_MODE) {
     const mods = getLocalStorageMods();
-    return mods.find(m => m.id === id) || null;
+    const found = mods.find(m => m.id === id);
+    if (found && isApproved(found)) {
+      return found;
+    }
+    return null;
   } else {
     try {
       const { data, error } = await supabaseClient!
         .from('mods')
         .select('*')
         .eq('id', id)
+        .or('status.eq.approved,status.is.null')
         .single();
       if (error) {
         if (error.code === 'PGRST116') {
@@ -352,7 +359,7 @@ export const getModById = async (id: number): Promise<Mod | null> => {
         }
         throw new ModsDriveError('DB_ERROR', error.message, error);
       }
-      if (!data) {
+      if (!data || !isApproved(data as Mod)) {
         throw new ModsDriveError('NOT_FOUND', 'Mod not found');
       }
       return data as Mod;
@@ -360,6 +367,14 @@ export const getModById = async (id: number): Promise<Mod | null> => {
       if (err instanceof ModsDriveError) throw err;
       throw new ModsDriveError('NETWORK_ERROR', 'Failed to connect to database', err);
     }
+  }
+};
+
+const getAdminToken = (): string | null => {
+  try {
+    return sessionStorage.getItem('admin_token');
+  } catch (e) {
+    return null;
   }
 };
 
@@ -377,47 +392,31 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
     setLocalStorageMods(mods);
     return newMod;
   } else {
-    // Clean and dynamic payload creation
-    const insertPayload: any = {
-      name: mod.name,
-      description: mod.description,
-      category: mod.category,
-      image_url: mod.image_url,
-      download_url: mod.download_url,
-      downloads_count: 0,
-    };
-    
-    if (mod.game_version !== undefined) {
-      insertPayload.game_version = mod.game_version;
-    }
-    if (mod.mod_version !== undefined) {
-      insertPayload.mod_version = mod.mod_version;
-    }
-    if (mod.gallery_urls !== undefined) {
-      insertPayload.gallery_urls = mod.gallery_urls;
-    }
-    if (mod.file_size !== undefined) {
-      insertPayload.file_size = mod.file_size;
-    }
-
     try {
-      if (!supabaseClient) {
-        throw new ModsDriveError('NETWORK_ERROR', 'Supabase client is not initialized');
+      const token = getAdminToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['x-admin-token'] = token;
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const { data, error } = await supabaseClient
-        .from('mods')
-        .insert([insertPayload])
-        .select()
-        .single();
-      
-      if (error) {
-        throw new ModsDriveError('DB_ERROR', error.message, error);
+      const response = await fetch('/api/admin/mods', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(mod),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new ModsDriveError('DB_ERROR', errData.error || 'Failed to create mod through secure backend server.');
       }
-      return data as Mod;
+
+      return await response.json();
     } catch (err) {
       if (err instanceof ModsDriveError) throw err;
-      throw new ModsDriveError('NETWORK_ERROR', 'Failed to save mod', err);
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to save mod through secure backend API', err);
     }
   }
 };
@@ -430,17 +429,27 @@ export const deleteMod = async (id: number): Promise<boolean> => {
     return true;
   } else {
     try {
-      const { error } = await supabaseClient!
-        .from('mods')
-        .delete()
-        .eq('id', id);
-      if (error) {
-        throw new ModsDriveError('DB_ERROR', error.message, error);
+      const token = getAdminToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['x-admin-token'] = token;
+        headers['Authorization'] = `Bearer ${token}`;
       }
+
+      const response = await fetch(`/api/admin/mods/${id}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new ModsDriveError('DB_ERROR', errData.error || 'Failed to delete mod through secure backend server.');
+      }
+
       return true;
     } catch (err) {
       if (err instanceof ModsDriveError) throw err;
-      throw new ModsDriveError('NETWORK_ERROR', 'Failed to delete mod', err);
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to delete mod through secure backend API', err);
     }
   }
 };
@@ -457,16 +466,23 @@ export const incrementDownloadsCount = async (id: number): Promise<number> => {
     return 0;
   } else {
     try {
-      const { data, error } = await supabaseClient!
-        .rpc('increment_downloads', { mod_id: id });
-      
-      if (error) {
-        throw new ModsDriveError('DB_ERROR', error.message, error);
+      const response = await fetch(`/api/mods/${id}/download`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new ModsDriveError('DB_ERROR', errData.error || 'Failed to securely update download count');
       }
-      return data || 0;
+
+      const resJson = await response.json();
+      return resJson.downloads_count !== undefined ? resJson.downloads_count : 0;
     } catch (err) {
       if (err instanceof ModsDriveError) throw err;
-      throw new ModsDriveError('NETWORK_ERROR', 'Failed to increment download count', err);
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to increment download count via secure backend proxy API', err);
     }
   }
 };
