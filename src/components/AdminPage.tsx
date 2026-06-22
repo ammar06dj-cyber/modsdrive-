@@ -353,7 +353,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       if (IS_DEV) {
         console.error("Auth request failed in administration deck:", err?.message || err);
       }
-      triggerToast("Authentication system error. Please try again.", "info");
+      triggerToast(`Authentication system error: ${err?.message || err}`, "info");
     }
   };
 

@@ -184,17 +184,9 @@ async function startServer() {
       return;
     }
 
-    // Prevent massive payloads to avoid memory issues (maximum 128 characters)
-    // Ensures a minimum secure length of 8 characters
-    if (password.length < 8 || password.length > 128) {
-      res.status(400).json({ error: "Password length must be between 8 and 128 characters." });
-      return;
-    }
-
-    // Secure non-backtracking regex checking to prevent ReDoS and validate standard characters
-    const safePasswordPattern = /^[a-zA-Z0-9!@#$%^&*()_+=\-[\]{}|\\:;"'<>,.?/~`]{8,128}$/;
-    if (!safePasswordPattern.test(password)) {
-      res.status(400).json({ error: "Password contains invalid characters or doesn't match complexity requirements." });
+    // Accept passwords from 1 to 256 characters (includes short development codes & long secure passphrases)
+    if (password.length < 1 || password.length > 256) {
+      res.status(400).json({ error: "Password length must be between 1 and 256 characters." });
       return;
     }
 
