@@ -71,3 +71,30 @@ ADMIN_PASSWORD=your_super_secure_and_long_password_here
      message: { error: "طلبات كثيرة جداً من هذا العنوان، يرجى المحاولة مجدداً في وقت لاحق." }
    });
    ```
+
+---
+
+## 4. تعليمات تهيئة وإعداد Google Search Console للسitemap
+
+لضمان أرشفة الموقع وسحب ملف الفهرسة الـ `sitemap.xml` بشكل صحيح ومقاومة خطأ "تعذر جلب الملف" (Couldn't Fetch)، يرجى تطبيق التعليمات التالية:
+
+1. **إلحاق محرك Sitemap بشكل صحيح**:
+   - داخل لوحة تحكم **Google Search Console**، عند إرسال ملف Sitemap، اكتب الاسم بالطريقة التالية تماماً:
+     `sitemap.xml`
+   - **لا تقم وبشدة** بكتابة slash مسبق (أي لا تكتب `/sitemap.xml`).
+
+2. **التحقق من إعداد نطاق الخاصية (Property Domain)**:
+   - تأكد أن نطاق الخاصية النشطة المحددة داخل Google Search Console يطابق تماماً رابط الدومين النهائي الآمن:
+     `https://modsdrive.pages.dev`
+
+3. **فحص قابلية الوصول المباشر**:
+   - افتح الروابط التالية يدوياً من المتصفح والتحقق من فتحها مباشرة بدون أي عمليات تحويل أو إعادة توجيه (Redirects):
+     - ملف الفهرسة: [https://modsdrive.pages.dev/sitemap.xml](https://modsdrive.pages.dev/sitemap.xml)
+     - ملف التحكم بالزواحف: [https://modsdrive.pages.dev/robots.txt](https://modsdrive.pages.dev/robots.txt)
+
+4. **في حال استمرار ظهور تنبيه "Couldn't Fetch" من قوقل**:
+   - لا تتسرع، ففي كثير من الأحيان يعود السبب لتأخير برمجيات الزحف الخاصة بـ Googlebot. يرجى الانتظار لمدة 24 ساعة.
+   - قم بحذف الـ Sitemap الحالية من اللوحة، ثم أعد إرسالها باسم `sitemap.xml` (بدون أي بادئات).
+   - استخدم أداة **URL Inspection** لفحص الرابط بشكل مباشر واختبار ما إذا كان الرابط متاحاً للزحف الفوري.
+   - تأكد من عدم وجود خيارات تقييد صارمة أو حظر من بوتات قوقل في جدار الحماية الخاص بـ Cloudflare (مثل Bot Fight Mode / Web Application Firewall WAF).
+

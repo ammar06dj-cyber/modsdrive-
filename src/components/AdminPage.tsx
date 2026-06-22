@@ -304,9 +304,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         moduleLockoutUntil = null;
         setRemainingSeconds(0);
         safeSessionStorage.setItem('admin_authenticated', 'true');
-        if (data.token) {
-          safeSessionStorage.setItem('admin_token', data.token);
-        }
         safeSessionStorage.removeItem('admin_failed_attempts');
         safeSessionStorage.removeItem('admin_lockout_until');
         triggerToast("Access Granted! Welcome to Gearbox Administrative Deck.", "success");
@@ -508,8 +505,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setIsAuthenticated(false);
     moduleIsAuthenticated = false;
     safeSessionStorage.removeItem('admin_authenticated');
-    safeSessionStorage.removeItem('admin_token');
-    fetch('/api/admin-logout', { method: 'POST' }).catch(() => {});
+    fetch('/api/admin-logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
     setPassword('');
     triggerToast("Logged out successfully.", "info");
   };

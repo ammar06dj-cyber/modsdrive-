@@ -1,5 +1,6 @@
 {
   "version": 1,
-  "include": ["/sitemap.xml", "/api/sitemap"],
-  "exclude": []
+  "include": ["/api/sitemap"],
+  "exclude": ["/sitemap.xml", "/robots.txt"]
 }
+

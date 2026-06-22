@@ -1,7 +1,27 @@
 import { writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 
-const baseUrl = process.env.APP_URL || 'https://modsdrive.pages.dev';
+let rawAppUrl = process.env.APP_URL || '';
+let baseUrl = 'https://modsdrive.pages.dev';
+
+if (rawAppUrl) {
+  let parsedUrl = rawAppUrl.trim().replace(/\/+$/, '');
+  
+  if (
+    parsedUrl.startsWith('https://') &&
+    !parsedUrl.includes('run.app') &&
+    !parsedUrl.includes('ais-dev') &&
+    !parsedUrl.includes('localhost') &&
+    !parsedUrl.includes('127.0.0.1')
+  ) {
+    baseUrl = parsedUrl;
+    console.log(`ℹ️ Base URL configured from APP_URL: ${baseUrl}`);
+  } else {
+    console.warn(`⚠️ Warning: APP_URL "${rawAppUrl}" is a development/preview or invalid URL. Falling back to production default: https://modsdrive.pages.dev`);
+  }
+} else {
+  console.log(`ℹ️ APP_URL environment variable is not defined. Using default base URL: ${baseUrl}`);
+}
 
 let SEED_MODS = [];
 try {
@@ -27,7 +47,30 @@ const modUrls = SEED_MODS.map(mod => ({
   lastmod: mod.created_at ? new Date(mod.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
 }));
 
-const allUrls = [...staticUrls, ...modUrls];
+const rawUrls = [...staticUrls, ...modUrls];
+
+const allUrls = rawUrls.filter(url => {
+  const loc = url.loc;
+  if (!loc || typeof loc !== 'string') return false;
+  
+  // Rule checks
+  if (
+    loc.includes('run.app') ||
+    loc.includes('ais-dev') ||
+    loc.includes('localhost') ||
+    loc.includes('127.0.0.1') ||
+    loc.startsWith('http://')
+  ) {
+    console.warn(`⚠️ Warning: Excluded invalid url from sitemap: ${loc}`);
+    return false;
+  }
+  
+  if (!loc.startsWith('https://modsdrive.pages.dev')) {
+    console.warn(`⚠️ Warning: URL does not match production domain: ${loc}`);
+  }
+
+  return true;
+});
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

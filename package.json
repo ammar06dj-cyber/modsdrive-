@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "generate-sitemap": "node scripts/generate-sitemap.js",
+    "check:sitemap": "node scripts/check-sitemap.js",
     "check:env": "node scripts/check-env-secrets.js",
+    "check:sanitize-url": "tsx scripts/check-sanitize-url.ts",
     "dev": "tsx server.ts",
-    "build": "npm run check:env && node scripts/generate-sitemap.js && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "npm run check:env && node scripts/generate-sitemap.js && npm run check:sitemap && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",

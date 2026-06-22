@@ -70,8 +70,8 @@ async function startServer() {
     contentSecurityPolicy: isProduction ? {
       directives: {
         defaultSrc: ["'self'"],
-        // 'unsafe-inline' is included in script-src for single-page applications built with Vite/React
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        // In production, we enforce 'self' for scripts with no 'unsafe-inline' since the built single-page application is bundled clean without inline script tags
+        scriptSrc: ["'self'"],
         // 'unsafe-inline' is necessary for Tailwind CSS run-time styling injects
         styleSrc: ["'self'", "'unsafe-inline'"],
         // Allow loading secure HTTPS images (including Unsplash, Supabase storage, etc.) and data URIs
@@ -220,6 +220,7 @@ async function startServer() {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => getClientIp(req as any) || req.ip || "Unknown IP",
+    validate: { ip: false },
   });
 
   // Session duration: 2 hours
@@ -245,20 +246,8 @@ async function startServer() {
     res: express.Response,
     next: express.NextFunction
   ) => {
-    const xAdminTokenHeader = req.headers["x-admin-token"];
-    let token: string | undefined = typeof xAdminTokenHeader === "string" ? xAdminTokenHeader : undefined;
-    
-    if (!token && req.headers.authorization) {
-      const parts = (req.headers.authorization as string).split(" ");
-      if (parts.length === 2 && parts[0].toLowerCase() === "bearer") {
-        token = parts[1];
-      }
-    }
-
-    if (!token) {
-      const cookies = parseCookies(req.headers.cookie);
-      token = cookies["admin_session"];
-    }
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies["admin_session"];
 
     if (!token || typeof token !== "string") {
       res.status(401).json({ error: "Unauthorized: Admin session token is missing." });
@@ -278,6 +267,44 @@ async function startServer() {
     }
 
     session.expiresAt = Date.now() + SESSION_DURATION_MS;
+    next();
+  };
+
+  const verifySameOriginForAdminWrites = (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      try {
+        const originUrl = new URL(origin as string);
+        const host = req.headers.host;
+        const forwardedHost = req.headers["x-forwarded-host"];
+
+        const expectedHosts: string[] = [];
+        if (typeof host === "string") expectedHosts.push(host.toLowerCase());
+        if (typeof forwardedHost === "string") expectedHosts.push(forwardedHost.toLowerCase());
+        if (req.hostname) {
+          expectedHosts.push(req.hostname.toLowerCase());
+        }
+
+        const expectedHostnames = expectedHosts.map(h => h.split(":")[0]);
+        const parsedHost = originUrl.host.toLowerCase();
+        const parsedHostname = originUrl.hostname.toLowerCase();
+
+        const matched = expectedHosts.some(h => h === parsedHost) || expectedHostnames.some(hn => hn === parsedHostname);
+
+        if (!matched) {
+          logger.warn(`Same-origin validation failed: Origin header is ${origin}, expected one of [${expectedHosts.join(", ")}]`);
+          res.status(403).json({ error: "Forbidden: Same-origin verification failed." });
+          return;
+        }
+      } catch (err) {
+        res.status(400).json({ error: "Invalid Origin header layout." });
+        return;
+      }
+    }
     next();
   };
 
@@ -345,9 +372,9 @@ async function startServer() {
     return null;
   }
 
-  // Import and initialize Supabase Client with service key or anon fallback
-  const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "";
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  // Import and initialize Supabase Client with service-role key only (strict server-side security)
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   const serverSupabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
     ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     : null;
@@ -385,7 +412,7 @@ async function startServer() {
           `admin_session=${token}`,
           "HttpOnly",
           "Path=/",
-          "SameSite=Lax",
+          "SameSite=Strict",
           `Max-Age=${2 * 60 * 60}`, // 2 hours
         ];
         if (isProduction) {
@@ -393,7 +420,7 @@ async function startServer() {
         }
         res.setHeader("Set-Cookie", cookieOptions.join("; "));
 
-        res.status(200).json({ authenticated: true, token });
+        res.status(200).json({ authenticated: true });
       } else {
         const timestamp = new Date().toISOString();
         logger.warn({ ip, timestamp }, `Failed admin login attempt`);
@@ -403,25 +430,15 @@ async function startServer() {
   });
 
   // Admin Log-Out endpoint
-  app.post("/api/admin-logout", (req, res) => {
-    const xAdminTokenHeader = req.headers["x-admin-token"];
-    let token: string | undefined = typeof xAdminTokenHeader === "string" ? xAdminTokenHeader : undefined;
-    if (!token && req.headers.authorization) {
-      const parts = (req.headers.authorization as string).split(" ");
-      if (parts.length === 2 && parts[0].toLowerCase() === "bearer") {
-        token = parts[1];
-      }
-    }
-    if (!token) {
-      const cookies = parseCookies(req.headers.cookie);
-      token = cookies["admin_session"];
-    }
+  app.post("/api/admin-logout", verifySameOriginForAdminWrites, (req, res) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies["admin_session"];
 
     if (token) {
       adminSessions.delete(token);
     }
 
-    res.setHeader("Set-Cookie", "admin_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+    res.setHeader("Set-Cookie", "admin_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
     res.status(200).json({ success: true, message: "Logged out successfully" });
   });
 
@@ -436,7 +453,7 @@ async function startServer() {
   });
 
   // POST /api/admin/mods - Add a new mod safely
-  app.post("/api/admin/mods", adminModsLimiter, requireAdminSession, async (req, res) => {
+  app.post("/api/admin/mods", adminModsLimiter, verifySameOriginForAdminWrites, requireAdminSession, async (req, res) => {
     try {
       const validationError = validateModPayload(req.body);
       if (validationError) {
@@ -445,7 +462,7 @@ async function startServer() {
       }
 
       if (!serverSupabase) {
-        res.status(500).json({ error: "Database connection is not configured or offline." });
+        res.status(500).json({ error: "Server database admin client is not configured." });
         return;
       }
 
@@ -485,7 +502,7 @@ async function startServer() {
   });
 
   // DELETE /api/admin/mods/:id - Delete an existing mod safely
-  app.delete("/api/admin/mods/:id", adminModsLimiter, requireAdminSession, async (req, res) => {
+  app.delete("/api/admin/mods/:id", adminModsLimiter, verifySameOriginForAdminWrites, requireAdminSession, async (req, res) => {
     try {
       const idStr = req.params.id;
       const id = parseInt(idStr, 10);
@@ -495,7 +512,7 @@ async function startServer() {
       }
 
       if (!serverSupabase) {
-        res.status(500).json({ error: "Database connection is not configured or offline." });
+        res.status(500).json({ error: "Server database admin client is not configured." });
         return;
       }
 
@@ -528,7 +545,7 @@ async function startServer() {
       }
 
       if (!serverSupabase) {
-        res.status(500).json({ error: "Database connection is not configured or offline." });
+        res.status(500).json({ error: "Server database admin client is not configured." });
         return;
       }
 
@@ -559,23 +576,7 @@ async function startServer() {
 
       if (rpcError) {
         logger.error({ rpcError, id }, "Error calling increment_downloads via Supabase RPC");
-        
-        // Secondary fallback update just in case RPC does not exist or fails
-        const currentDownloads = mod.downloads_count || 0;
-        const { data: updatedMod, error: updateError } = await serverSupabase
-          .from('mods')
-          .update({ downloads_count: currentDownloads + 1 })
-          .eq('id', id)
-          .select('downloads_count')
-          .single();
-
-        if (updateError) {
-          logger.error({ updateError, id }, "Fallback downloads_count update failed");
-          res.status(500).json({ error: "Failed to securely update download count." });
-          return;
-        }
-
-        res.status(200).json({ id: mod.id, downloads_count: updatedMod.downloads_count });
+        res.status(500).json({ error: "Failed to update download count." });
         return;
       }
 

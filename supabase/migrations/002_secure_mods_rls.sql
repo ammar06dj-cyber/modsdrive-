@@ -43,10 +43,10 @@ BEGIN
 END;
 $$;
 
--- Revoke high default execution privileges from public for safety if appropriate,
--- then explicitly grant execution to public so authorized users/servers can safely call it.
-REVOKE ALL ON FUNCTION public.increment_downloads(INTEGER) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.increment_downloads(INTEGER) TO anon, authenticated, service_role;
+-- Revoke execution privileges from public, anon, and authenticated roles for safety.
+-- Only the backend server using the Supabase "service_role" should have permission to call this.
+REVOKE ALL ON FUNCTION public.increment_downloads(INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_downloads(INTEGER) TO service_role;
 
 -- Document safe policies configuration
 COMMENT ON TABLE public.mods IS 'Table of vehicle modifications secured via RLS policies.';

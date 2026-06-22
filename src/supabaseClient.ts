@@ -370,14 +370,6 @@ export const getModById = async (id: number): Promise<Mod | null> => {
   }
 };
 
-const getAdminToken = (): string | null => {
-  try {
-    return sessionStorage.getItem('admin_token');
-  } catch (e) {
-    return null;
-  }
-};
-
 export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_count'>): Promise<Mod> => {
   if (IS_DEMO_MODE) {
     const mods = getLocalStorageMods();
@@ -393,18 +385,12 @@ export const createMod = async (mod: Omit<Mod, 'id' | 'created_at' | 'downloads_
     return newMod;
   } else {
     try {
-      const token = getAdminToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['x-admin-token'] = token;
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch('/api/admin/mods', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
         body: JSON.stringify(mod),
       });
 
@@ -429,16 +415,9 @@ export const deleteMod = async (id: number): Promise<boolean> => {
     return true;
   } else {
     try {
-      const token = getAdminToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['x-admin-token'] = token;
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       const response = await fetch(`/api/admin/mods/${id}`, {
         method: 'DELETE',
-        headers,
+        credentials: 'same-origin',
       });
 
       if (!response.ok) {
