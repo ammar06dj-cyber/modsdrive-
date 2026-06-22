@@ -276,9 +276,23 @@ async function startServer() {
     next: express.NextFunction
   ) => {
     const origin = req.headers.origin;
+    const referer = req.headers.referer;
+
+    let checkOrigin: string | undefined = undefined;
     if (origin) {
+      checkOrigin = origin as string;
+    } else if (referer) {
       try {
-        const originUrl = new URL(origin as string);
+        const refUrl = new URL(referer);
+        checkOrigin = refUrl.origin;
+      } catch (err) {
+        // Ignore invalid referer header
+      }
+    }
+
+    if (checkOrigin) {
+      try {
+        const originUrl = new URL(checkOrigin);
         const host = req.headers.host;
         const forwardedHost = req.headers["x-forwarded-host"];
 
@@ -289,6 +303,20 @@ async function startServer() {
           expectedHosts.push(req.hostname.toLowerCase());
         }
 
+        // Support for APP_URL env variable if configured
+        const appUrlEnv = process.env.APP_URL;
+        if (appUrlEnv) {
+          try {
+            const parsedAppUrl = new URL(appUrlEnv);
+            expectedHosts.push(parsedAppUrl.host.toLowerCase());
+          } catch (e) {
+            expectedHosts.push(appUrlEnv.toLowerCase());
+          }
+        }
+
+        // Always allow the default custom live pages domain
+        expectedHosts.push("modsdrive.pages.dev");
+
         const expectedHostnames = expectedHosts.map(h => h.split(":")[0]);
         const parsedHost = originUrl.host.toLowerCase();
         const parsedHostname = originUrl.hostname.toLowerCase();
@@ -296,14 +324,18 @@ async function startServer() {
         const matched = expectedHosts.some(h => h === parsedHost) || expectedHostnames.some(hn => hn === parsedHostname);
 
         if (!matched) {
-          logger.warn(`Same-origin validation failed: Origin header is ${origin}, expected one of [${expectedHosts.join(", ")}]`);
+          logger.warn(`Same-origin validation failed: Origin source is ${checkOrigin}, expected one of [${expectedHosts.join(", ")}]`);
           res.status(403).json({ error: "Forbidden: Same-origin verification failed." });
           return;
         }
       } catch (err) {
-        res.status(400).json({ error: "Invalid Origin header layout." });
+        res.status(400).json({ error: "Invalid Origin or Referer header layout." });
         return;
       }
+    } else {
+      // If no Origin OR Referer is present, block write operations (CSRF risk)
+      res.status(403).json({ error: "Forbidden: Same-origin identity verification is missing." });
+      return;
     }
     next();
   };
@@ -545,7 +577,7 @@ async function startServer() {
       }
 
       if (!serverSupabase) {
-        res.status(500).json({ error: "Server database admin client is not configured." });
+        res.status(500).json({ error: "Server database client is not configured." });
         return;
       }
 
@@ -576,7 +608,7 @@ async function startServer() {
 
       if (rpcError) {
         logger.error({ rpcError, id }, "Error calling increment_downloads via Supabase RPC");
-        res.status(500).json({ error: "Failed to update download count." });
+        res.status(500).json({ error: "Failed to securely update download count." });
         return;
       }
 

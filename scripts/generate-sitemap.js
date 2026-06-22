@@ -1,27 +1,36 @@
 import { writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 
-let rawAppUrl = process.env.APP_URL || '';
-let baseUrl = 'https://modsdrive.pages.dev';
-
-if (rawAppUrl) {
-  let parsedUrl = rawAppUrl.trim().replace(/\/+$/, '');
-  
-  if (
-    parsedUrl.startsWith('https://') &&
-    !parsedUrl.includes('run.app') &&
-    !parsedUrl.includes('ais-dev') &&
-    !parsedUrl.includes('localhost') &&
-    !parsedUrl.includes('127.0.0.1')
-  ) {
-    baseUrl = parsedUrl;
-    console.log(`ℹ️ Base URL configured from APP_URL: ${baseUrl}`);
-  } else {
-    console.warn(`⚠️ Warning: APP_URL "${rawAppUrl}" is a development/preview or invalid URL. Falling back to production default: https://modsdrive.pages.dev`);
+function normalizeBaseUrl(url) {
+  let raw = url ? String(url).trim() : "";
+  if (!raw) {
+    return 'https://modsdrive.pages.dev';
   }
-} else {
-  console.log(`ℹ️ APP_URL environment variable is not defined. Using default base URL: ${baseUrl}`);
+
+  // Remove final slashes
+  raw = raw.replace(/\/+$/, '');
+
+  // Must start with https://
+  if (!raw.startsWith('https://')) {
+    console.warn(`⚠️ Warning: Base URL "${raw}" does not start with https://. Falling back to production default: https://modsdrive.pages.dev`);
+    return 'https://modsdrive.pages.dev';
+  }
+
+  // Must not contain banned keywords
+  const bannedKeywords = ['run.app', 'ais-dev', 'localhost', '127.0.0.1', 'http://'];
+  for (const pattern of bannedKeywords) {
+    if (raw.includes(pattern)) {
+      console.warn(`⚠️ Warning: Base URL "${raw}" contains prohibited pattern "${pattern}". Falling back to production default: https://modsdrive.pages.dev`);
+      return 'https://modsdrive.pages.dev';
+    }
+  }
+
+  return raw;
 }
+
+const rawAppUrl = process.env.APP_URL || '';
+const baseUrl = normalizeBaseUrl(rawAppUrl);
+console.log(`ℹ️ Normalized Base URL for sitemap: ${baseUrl}`);
 
 let SEED_MODS = [];
 try {
