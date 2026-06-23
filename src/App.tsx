@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { safeStorage, safeSessionStorage } from './utils/safeStorage';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { NotFoundPage } from './components/NotFoundPage';
@@ -12,6 +13,7 @@ import { PageLoadingSkeleton } from './components/PageLoadingSkeleton';
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const ModDetailPage = lazy(() => import('./components/ModDetailPage'));
 const DesignerAuthPage = lazy(() => import('./components/DesignerAuthPage'));
+const DesignerDashboard = lazy(() => import('./components/DesignerDashboard'));
 const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage'));
 import { FeedbackToast } from './components/FeedbackToast';
 
@@ -29,7 +31,7 @@ export default function App() {
   
   // Multi-language state with localStorage persistence
   const [lang, setLang] = useState<Language>(() => {
-    const saved = localStorage.getItem('lang');
+    const saved = safeStorage.getItem('lang');
     return (saved === 'en' || saved === 'fr' || saved === 'ar') ? saved as Language : 'en';
   });
 
@@ -42,7 +44,7 @@ export default function App() {
 
   const handleLanguageChange = useCallback((newLang: Language) => {
     setLang(newLang);
-    localStorage.setItem('lang', newLang);
+    safeStorage.setItem('lang', newLang);
   }, []);
 
   // Feedback toast state
@@ -90,6 +92,8 @@ export default function App() {
       return { page: 'privacy-policy' };
     } else if (pathname === '/designer-login' || pathname.endsWith('/designer-login')) {
       return { page: 'designer-login' };
+    } else if (pathname === '/designer-dashboard' || pathname.endsWith('/designer-dashboard')) {
+      return { page: 'designer-dashboard' };
     } else {
       return { page: 'not-found' };
     }
@@ -120,6 +124,8 @@ export default function App() {
       document.title = "Admin - ModsDrive";
     } else if (route.page === 'designer-login') {
       document.title = "Designers - ModsDrive";
+    } else if (route.page === 'designer-dashboard') {
+      document.title = "Designer Dashboard - ModsDrive";
     } else if (route.page === 'not-found') {
       document.title = "404 - ModsDrive";
     }
@@ -173,24 +179,26 @@ export default function App() {
     let path = '/';
     if (page === 'detail' && selectedModId !== undefined) {
       if (window.location.pathname === '/' || window.location.pathname === '') {
-        sessionStorage.setItem('mods_drive_search_params', window.location.search);
+        safeSessionStorage.setItem('mods_drive_search_params', window.location.search);
       }
       path = `/mod/${selectedModId}`;
     } else if (page === 'amdj0602') {
       path = '/amdj0602';
     } else if (page === 'privacy-policy') {
       if (window.location.pathname === '/' || window.location.pathname === '') {
-        sessionStorage.setItem('mods_drive_search_params', window.location.search);
+        safeSessionStorage.setItem('mods_drive_search_params', window.location.search);
       }
       path = '/privacy-policy';
     } else if (page === 'designer-login') {
       path = '/designer-login';
+    } else if (page === 'designer-dashboard') {
+      path = '/designer-dashboard';
     } else if (page === 'home') {
       if (preserveParams) {
-        const savedSearch = sessionStorage.getItem('mods_drive_search_params') || '';
+        const savedSearch = safeSessionStorage.getItem('mods_drive_search_params') || '';
         path = `/${savedSearch}`;
       } else {
-        sessionStorage.removeItem('mods_drive_search_params');
+        safeSessionStorage.removeItem('mods_drive_search_params');
         path = '/';
       }
     }
@@ -325,6 +333,17 @@ export default function App() {
             <DesignerAuthPage
               lang={lang}
               triggerToast={triggerToast}
+              onNavigate={(page) => handleNavigate(page, undefined, false)}
+            />
+          </Suspense>
+        )}
+
+        {route.page === 'designer-dashboard' && (
+          <Suspense fallback={<PageLoadingSkeleton lang={lang} />}>
+            <DesignerDashboard
+              lang={lang}
+              triggerToast={triggerToast}
+              onNavigate={(page) => handleNavigate(page, undefined, false)}
             />
           </Suspense>
         )}

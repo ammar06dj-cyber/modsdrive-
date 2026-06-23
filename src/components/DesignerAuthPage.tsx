@@ -5,15 +5,17 @@
 
 import React, { useState } from 'react';
 import { Mail, Lock, User, UserPlus, LogIn, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { supabaseClient, IS_DEMO_MODE, signUpDesigner, signInDesigner, ModsDriveError } from '../supabaseClient';
+import { supabaseClient, IS_DEMO_MODE, signUpDesigner, signInDesigner, ModsDriveError, signOutDesignerUser } from '../supabaseClient';
 import { translations } from '../translations';
+import { safeStorage } from '../utils/safeStorage';
 
 interface DesignerAuthPageProps {
   lang: 'ar' | 'en' | 'fr';
   triggerToast: (message: string, type: 'success' | 'info') => void;
+  onNavigate?: (page: 'home' | 'detail' | 'amdj0602' | 'privacy-policy' | 'designer-login' | 'designer-dashboard' | 'not-found') => void;
 }
 
-export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) {
+export function DesignerAuthPage({ lang, triggerToast, onNavigate }: DesignerAuthPageProps) {
   const t = translations[lang] as any;
 
   // Tabs: 'signin' | 'signup'
@@ -38,7 +40,18 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
   }>({});
 
   // Sign in success info
-  const [authenticatedUserEmail, setAuthenticatedUserEmail] = useState<string | null>(null);
+  const [authenticatedUserEmail, setAuthenticatedUserEmail] = useState<string | null>(() => {
+    const savedDemo = safeStorage.getItem('demo_designer_user');
+    if (savedDemo) {
+      try {
+        const parsed = JSON.parse(savedDemo);
+        return parsed.email;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
   // Validate form
   const validateForm = () => {
@@ -70,12 +83,33 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
     return Object.keys(errors).length === 0;
   };
 
+  const handleDemoModeLogin = () => {
+    const simulatedUser = {
+      id: 'demo-designer-id-12345',
+      email: 'demo@designer.com',
+      display_name: 'Demo Modder'
+    };
+    safeStorage.setItem('demo_designer_user', JSON.stringify(simulatedUser));
+    triggerToast(lang === 'ar' ? 'تمت محاكاة تسجيل الدخول بنجاح!' : lang === 'fr' ? 'Connexion simulée avec succès !' : 'Simulated designer session activated!', 'success');
+    setAuthenticatedUserEmail(simulatedUser.email);
+    if (onNavigate) {
+      setTimeout(() => {
+        onNavigate('designer-dashboard');
+      }, 500);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOutDesignerUser();
+    setAuthenticatedUserEmail(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
 
     if (IS_DEMO_MODE) {
-      triggerToast(t.demoModeAuthWarning, 'info');
+      handleDemoModeLogin();
       return;
     }
 
@@ -94,6 +128,11 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
           setPassword('');
           setConfirmPassword('');
           setDisplayName('');
+          if (onNavigate) {
+            setTimeout(() => {
+              onNavigate('designer-dashboard');
+            }, 800);
+          }
         }
       } else {
         const data = await signInDesigner(email, password);
@@ -104,6 +143,11 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
           // Reset form
           setEmail('');
           setPassword('');
+          if (onNavigate) {
+            setTimeout(() => {
+              onNavigate('designer-dashboard');
+            }, 800);
+          }
         }
       }
     } catch (err: any) {
@@ -142,11 +186,19 @@ export function DesignerAuthPage({ lang, triggerToast }: DesignerAuthPageProps) 
             {t.loggedInAs} <span className="text-white font-semibold font-mono">{authenticatedUserEmail}</span>
           </p>
           <button
-            onClick={() => setAuthenticatedUserEmail(null)}
-            className="mt-4 text-[10px] uppercase font-bold text-gray-500 hover:text-white transition-colors tracking-wider font-mono hover:underline cursor-pointer"
+            onClick={handleSignOut}
+            className="mt-4 text-[10px] uppercase font-bold text-gray-500 hover:text-white transition-colors tracking-wider font-mono hover:underline cursor-pointer block mx-auto"
           >
             {lang === 'ar' ? 'تسجيل الخروج المبدئي' : lang === 'fr' ? 'Déconnexion' : 'Sign Out / Back'}
           </button>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('designer-dashboard')}
+              className="mt-4 w-full py-2 bg-brand-cyan hover:bg-[#FF7300] text-black font-black text-[10px] uppercase rounded transition-all duration-300 cursor-pointer block text-center"
+            >
+              {lang === 'ar' ? 'الانتقال إلى لوحة التصميم' : lang === 'fr' ? 'Aller au Tableau de Bord' : 'Go to Designer Dashboard'}
+            </button>
+          )}
         </div>
       )}
 

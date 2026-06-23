@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Mod } from './types';
+import { safeStorage } from './utils/safeStorage';
 
 // Custom error class for database/Supabase operations
 export class ModsDriveError extends Error {
@@ -57,12 +58,28 @@ const cleanSupabaseUrl = getCleanUrl(SUPABASE_URL);
 
 const IS_DEV = !!((import.meta as any).env && (import.meta as any).env.DEV);
 
-// Check if credentials are placeholders
+// Check if credentials are placeholders or invalid URL formats
 const isPlaceholder = (url: string, key: string) => {
-  return !url || !key || url.includes('YOUR_SUPABASE_') || key.includes('YOUR_SUPABASE_');
+  if (!url || !key) return true;
+  const urlLower = url.toLowerCase();
+  if (urlLower.includes('your_supabase_') || key.toLowerCase().includes('your_supabase_')) return true;
+  if (!urlLower.startsWith('http://') && !urlLower.startsWith('https://')) return true;
+  return false;
 };
 
-export const IS_DEMO_MODE = isPlaceholder(SUPABASE_URL, SUPABASE_KEY);
+const computedDemoMode = isPlaceholder(SUPABASE_URL, SUPABASE_KEY);
+
+export const supabaseClient = (() => {
+  if (computedDemoMode) return null;
+  try {
+    return createClient(cleanSupabaseUrl, SUPABASE_KEY);
+  } catch (err) {
+    console.error('[Supabase Init] Failed to initialize client. Forcing demo mode fallback.', err);
+    return null;
+  }
+})();
+
+export const IS_DEMO_MODE = computedDemoMode || (supabaseClient === null);
 
 if (IS_DEV) {
   console.log('Supabase configuration:', {
@@ -72,8 +89,6 @@ if (IS_DEV) {
     keyLength: SUPABASE_KEY ? SUPABASE_KEY.length : 0
   });
 }
-
-export const supabaseClient = !IS_DEMO_MODE ? createClient(cleanSupabaseUrl, SUPABASE_KEY) : null;
 
 // Premium initial seed mods for the demo mode
 export const SEED_MODS: Mod[] = [
@@ -246,16 +261,16 @@ export const SEED_MODS: Mod[] = [
 
 // Helper to initialize local storage
 const getLocalStorageMods = (): Mod[] => {
-  const data = localStorage.getItem('simulator_mods');
+  const data = safeStorage.getItem('simulator_mods');
   if (!data) {
-    localStorage.setItem('simulator_mods', JSON.stringify(SEED_MODS));
+    safeStorage.setItem('simulator_mods', JSON.stringify(SEED_MODS));
     return SEED_MODS;
   }
   try {
     const parsed = JSON.parse(data) as Mod[];
     // Migrate: check if we need to add game_version/mod_version back to seed mods
     if (parsed.length <= 6) {
-      localStorage.setItem('simulator_mods', JSON.stringify(SEED_MODS));
+      safeStorage.setItem('simulator_mods', JSON.stringify(SEED_MODS));
       return SEED_MODS;
     }
     let changed = false;
@@ -295,7 +310,7 @@ const getLocalStorageMods = (): Mod[] => {
     });
 
     if (changed) {
-      localStorage.setItem('simulator_mods', JSON.stringify(migrated));
+      safeStorage.setItem('simulator_mods', JSON.stringify(migrated));
     }
     return migrated;
   } catch (e) {
@@ -304,7 +319,7 @@ const getLocalStorageMods = (): Mod[] => {
 };
 
 const setLocalStorageMods = (mods: Mod[]) => {
-  localStorage.setItem('simulator_mods', JSON.stringify(mods));
+  safeStorage.setItem('simulator_mods', JSON.stringify(mods));
 };
 
 // Mod operations
@@ -506,5 +521,126 @@ export const signInDesigner = async (email: string, password: string): Promise<a
   } catch (err) {
     if (err instanceof ModsDriveError) throw err;
     throw new ModsDriveError('NETWORK_ERROR', 'Authentication failed', err);
+  }
+};
+
+export interface DesignerUser {
+  id: string;
+  email: string;
+  display_name?: string;
+}
+
+export const getCurrentDesignerUser = async (): Promise<DesignerUser | null> => {
+  if (IS_DEMO_MODE) {
+    const saved = safeStorage.getItem('demo_designer_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved) as DesignerUser;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  } else {
+    try {
+      if (!supabaseClient) return null;
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error || !session?.user) return null;
+      return {
+        id: session.user.id,
+        email: session.user.email || '',
+        display_name: session.user.user_metadata?.display_name || session.user.email || 'Designer'
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+};
+
+export const signOutDesignerUser = async (): Promise<void> => {
+  if (IS_DEMO_MODE) {
+    safeStorage.removeItem('demo_designer_user');
+  } else {
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+    }
+  }
+};
+
+export const getModsByCreator = async (creatorId: string): Promise<Mod[]> => {
+  if (IS_DEMO_MODE) {
+    const mods = getLocalStorageMods();
+    return mods.filter(m => m.creator_id === creatorId);
+  } else {
+    try {
+      if (!supabaseClient) {
+        throw new ModsDriveError('DB_ERROR', 'Database client is not available.');
+      }
+      const { data, error } = await supabaseClient
+        .from('mods')
+        .select('*')
+        .eq('creator_id', creatorId)
+        .order('created_at', { ascending: false });
+      if (error) {
+        throw new ModsDriveError('DB_ERROR', error.message, error);
+      }
+      return data as Mod[] || [];
+    } catch (err) {
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to connect to database', err);
+    }
+  }
+};
+
+export const createDesignerMod = async (
+  mod: Omit<Mod, 'id' | 'created_at' | 'downloads_count' | 'status' | 'creator_id'>,
+  creatorId: string
+): Promise<Mod> => {
+  if (IS_DEMO_MODE) {
+    const mods = getLocalStorageMods();
+    const newId = mods.length > 0 ? Math.max(...mods.map(m => m.id)) + 1 : 1;
+    const newMod: Mod = {
+      ...mod,
+      id: newId,
+      downloads_count: 0,
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      creator_id: creatorId
+    };
+    mods.unshift(newMod);
+    setLocalStorageMods(mods);
+    return newMod;
+  } else {
+    try {
+      if (!supabaseClient) {
+        throw new ModsDriveError('DB_ERROR', 'Database client is not available.');
+      }
+      const { data, error } = await supabaseClient
+        .from('mods')
+        .insert([
+          {
+            name: mod.name,
+            description: mod.description,
+            category: mod.category,
+            image_url: mod.image_url,
+            download_url: mod.download_url,
+            game_version: mod.game_version,
+            mod_version: mod.mod_version,
+            downloads_count: 0,
+            status: 'pending',
+            creator_id: creatorId
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        throw new ModsDriveError('DB_ERROR', error.message, error);
+      }
+      return data as Mod;
+    } catch (err) {
+      if (err instanceof ModsDriveError) throw err;
+      throw new ModsDriveError('NETWORK_ERROR', 'Failed to submit mod structure directly to database', err);
+    }
   }
 };

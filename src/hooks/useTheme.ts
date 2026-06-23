@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { safeStorage } from '../utils/safeStorage';
 
 export type Theme = 'dark' | 'light';
 
@@ -11,7 +12,7 @@ export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('theme') as Theme | null;
+      const stored = safeStorage.getItem('theme') as Theme | null;
       if (stored === 'dark' || stored === 'light') {
         return stored;
       }
@@ -26,7 +27,7 @@ export function useTheme() {
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
       const next: Theme = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('theme', next);
+      safeStorage.setItem('theme', next);
       return next;
     });
   }, []);
@@ -49,7 +50,7 @@ export function useTheme() {
     
     const handleChange = (e: MediaQueryListEvent) => {
       // Only transition if user has not explicitly set a preference in localStorage
-      if (!localStorage.getItem('theme')) {
+      if (!safeStorage.getItem('theme')) {
         const next = e.matches ? 'light' : 'dark';
         setTheme(next);
       }

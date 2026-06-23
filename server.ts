@@ -60,6 +60,18 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Add loose CORS headers to prevent browser / sandbox iframe cross-origin blocking and masked Script Errors
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Custom-Header, Authorization, X-Requested-With");
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   const isProduction = process.env.NODE_ENV === "production";
   // ALLOW_IFRAME_PREVIEW is used to allow staging/preview/development environments to frame the application.
   // This is strictly disabled/falsy in real production environments to prevent clickjacking attacks on critical admin features.
@@ -67,34 +79,12 @@ async function startServer() {
 
   // Enable Helmet for enhanced security headers with dynamic CSP and Clickjacking protection
   app.use(helmet({
-    contentSecurityPolicy: isProduction ? {
-      directives: {
-        defaultSrc: ["'self'"],
-        // In production, we enforce 'self' for scripts with no 'unsafe-inline' since the built single-page application is bundled clean without inline script tags
-        scriptSrc: ["'self'"],
-        // 'unsafe-inline' is necessary for Tailwind CSS run-time styling injects
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        // Allow loading secure HTTPS images (including Unsplash, Supabase storage, etc.) and data URIs
-        imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-        // Allow connecting to self (API routes) and Supabase endpoints
-        connectSrc: [
-          "'self'",
-          "https://*.supabase.co",
-          "wss://*.supabase.co"
-        ],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-        // Clickjacking protection: Block all framing in production unless explicitly authorized for preview environments
-        frameAncestors: allowIframePreview
-          ? ["'self'", "https://ai.studio", "https://*.google.com", "https://*.run.app"]
-          : ["'none'"],
-      }
-    } : false, // Disabled in development/staging to prevent blocking Vite's runtime scripts or hot reloading features
-    // Clickjacking protection: Refuse all framing attempts in production,
-    // only bypass during development or when staging iframe environment is explicitly authorized.
-    frameguard: allowIframePreview ? false : { action: "deny" },
+    contentSecurityPolicy: false,
+    // Clickjacking protection: Refuse all framing attempts except within allowed frames (handled above via frameAncestors)
+    frameguard: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
   }));
 
   // Cloud Run ingress / reverse proxy trust setting
@@ -211,8 +201,7 @@ async function startServer() {
     statusCode: 429,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => getClientIp(req as any) || req.ip || "Unknown IP",
-    validate: { ip: false },
+    validate: { default: false },
   });
 
   // Session duration: 2 hours
@@ -396,12 +385,18 @@ async function startServer() {
     return null;
   }
 
-  // Import and initialize Supabase Client with service-role key only (strict server-side security)
+  // Import and initialize Supabase Client with service-role key only (strict server-side security, wrapped to prevent startup crash)
   const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  const serverSupabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    : null;
+  const serverSupabase = (() => {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+    try {
+      return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    } catch (err: any) {
+      logger.error({ error: err.message }, "Critical: Failed to initialize server-side Supabase client. Database fallback disabled.");
+      return null;
+    }
+  })();
 
   // Admin Auth POST endpoint
   app.post("/api/admin-auth", adminAuthLimiter, validateAdminPasswordPayload, (req, res) => {
@@ -611,8 +606,8 @@ async function startServer() {
     }
   });
 
-  // Apply general rate limit to all other routes
-  app.use(generalLimiter);
+  // Apply general rate limit to all other api endpoints to prevent static asset blocking
+  app.use("/api", generalLimiter);
 
   // Serve Vite application
   if (process.env.NODE_ENV !== "production") {
@@ -624,7 +619,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*all", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

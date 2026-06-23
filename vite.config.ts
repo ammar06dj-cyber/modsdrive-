@@ -160,6 +160,10 @@ export default defineConfig({
   server: {
     hmr: process.env.DISABLE_HMR !== 'true',
     watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    cors: true,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+    },
   },
   build: {
     rollupOptions: {
